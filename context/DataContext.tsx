@@ -1,18 +1,18 @@
-import React, { createContext, useState, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, ReactNode, useContext, useMemo, useState } from 'react';
 
 // --- Types ---
 export type TaskStatus = 'Todo' | 'InProgress' | 'Done';
 
 export interface Task {
   id: string;
-  eventId: string; // Dedicated to an event
+  eventId: string; 
   title: string;
   status: TaskStatus;
 }
 
 export interface Guest {
   id: string;
-  eventId: string; // Dedicated to an event
+  eventId: string; 
   name: string;
   status: 'Attending' | 'Not Attending' | 'Maybe';
   dietary: string;
@@ -24,22 +24,28 @@ export interface UserProfile {
   profileImage: string | null;
 }
 
+// NEW: System Preferences Type
+export interface UserSettings {
+  hapticsEnabled: boolean;
+}
+
 interface DataContextType {
   tasks: Task[];
   guests: Guest[];
   userProfile: UserProfile;
+  settings: UserSettings; // Integrated settings state
   addTask: (eventId: string, title: string) => void;
   removeTask: (id: string) => void;
   moveTask: (id: string, newStatus: TaskStatus) => void;
   addGuest: (eventId: string, name: string) => void;
   toggleGuestStatus: (id: string) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
+  updateSettings: (updates: Partial<UserSettings>) => void; // Settings action
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  // Mock Data linked to Event IDs '1' (Summer Gala) and '2' (Harrison's B-Day)
   const [tasks, setTasks] = useState<Task[]>([
     { id: '1', eventId: '1', title: 'Book Venue', status: 'Done' },
     { id: '2', eventId: '1', title: 'Send Invites', status: 'InProgress' },
@@ -57,8 +63,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop',
   });
 
-  // --- Optimized Actions (Functional Updates) ---
-  
+  // Default settings initialized to enabled
+  const [settings, setSettings] = useState<UserSettings>({
+    hapticsEnabled: true,
+  });
+
   const addTask = (eventId: string, title: string) => {
     const newTask: Task = { id: Date.now().toString(), eventId, title, status: 'Todo' };
     setTasks(prev => [...prev, newTask]);
@@ -89,20 +98,23 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setUserProfile(prev => ({ ...prev, ...updates }));
   };
 
-  // --- MEMOIZATION FIX ---
-  // This object is now stable. It will not be re-created unless 
-  // tasks, guests, or userProfile actually change.
+  const updateSettings = (updates: Partial<UserSettings>) => {
+    setSettings(prev => ({ ...prev, ...updates }));
+  };
+
   const contextValue = useMemo(() => ({
     tasks,
     guests,
     userProfile,
+    settings,
     addTask,
     removeTask,
     moveTask,
     addGuest,
     toggleGuestStatus,
-    updateProfile
-  }), [tasks, guests, userProfile]);
+    updateProfile,
+    updateSettings
+  }), [tasks, guests, userProfile, settings]);
 
   return (
     <DataContext.Provider value={contextValue}>

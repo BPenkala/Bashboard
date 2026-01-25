@@ -1,47 +1,46 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-import { primitives } from '../constants/Colors'; //
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
+import { primitives } from '../constants/Colors';
 
-interface WordmarkProps {
-  size?: number;
-  color?: string;
-  accentColor?: string;
-}
+const AnimatedLetter = ({ letter, index, size, color, font }: any) => {
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
 
-/**
- * BASHBOARD Wordmark
- * Utilizes Poppins_900Black for 'Bash' and Poppins_400Regular for 'board'
- * to anchor the Heritage Tech brand identity.
- */
-export default function Wordmark({ 
-  size = 24, 
-  color = primitives.cobalt, 
-  accentColor = primitives.cinnabar 
-}: WordmarkProps) {
+  useEffect(() => {
+    // 50ms stagger per letter for an "extravagant" reveal
+    scale.value = withDelay(index * 50, withSpring(1, { damping: 8, stiffness: 120 }));
+    opacity.value = withDelay(index * 50, withSpring(1));
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.Text style={[style, { fontFamily: font, fontSize: size, color: color, letterSpacing: -1 }]}>
+      {letter}
+    </Animated.Text>
+  );
+};
+
+export default function Wordmark({ size = 24 }: { size?: number }) {
+  const bash = "BASH".split("");
+  const board = "board".split("");
+
   return (
     <View className="flex-row items-baseline">
-      <Text 
-        style={{ 
-          fontFamily: 'Poppins_900Black', 
-          fontSize: size, 
-          color: color, 
-          letterSpacing: -1.5,
-          textTransform: 'uppercase'
-        }}
-      >
-        Bash
-      </Text>
-      <Text 
-        style={{ 
-          fontFamily: 'Poppins_400Regular', 
-          fontSize: size * 0.95, 
-          color: accentColor, 
-          letterSpacing: -1,
-          marginLeft: 1
-        }}
-      >
-        board
-      </Text>
+      <View className="flex-row">
+        {bash.map((l, i) => (
+          <AnimatedLetter key={`bash-${i}`} letter={l} index={i} size={size} color={primitives.cobalt} font="Poppins_900Black" />
+        ))}
+      </View>
+      <View className="flex-row ml-1">
+        {board.map((l, i) => (
+          <AnimatedLetter key={`board-${i}`} letter={l} index={i + 4} size={size * 0.95} color={primitives.cinnabar} font="Poppins_400Regular" />
+        ))}
+      </View>
     </View>
   );
 }
