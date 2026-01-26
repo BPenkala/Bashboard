@@ -17,7 +17,13 @@ module.exports = {
       borderRadius: {
         'bento': '28px',
         'inner': '16px',
-      }
+      },
+      fontFamily: {
+        'poppins-reg': ['Poppins_400Regular'],
+        'poppins-med': ['Poppins_500Medium'],
+        'poppins-bold': ['Poppins_700Bold'],
+        'poppins-black': ['Poppins_900Black'],
+      },
     },
   },
   plugins: [],

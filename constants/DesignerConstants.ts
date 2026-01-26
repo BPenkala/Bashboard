@@ -12,7 +12,7 @@ export const INITIAL_TEMPLATES = [
 ];
 
 export const FONT_OPTIONS = [
-    { label: 'Poppins', value: 'Poppins_700Bold' }, // Promoted to top as requested
+    { label: 'Poppins', value: 'Poppins_700Bold' }, 
     { label: 'Playfair', value: 'PlayfairDisplay-Bold' },
     { label: 'Montserrat', value: 'Montserrat-Bold' },
     { label: 'Modern', value: 'Oswald-Bold' },
