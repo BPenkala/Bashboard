@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useMemo } from 'react';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { getTemplatesForType } from '../../constants/DesignerConstants';
+import { getTemplatesForType } from '../../constants/DesignerConstants'; // Verify this path
 import InvitationRenderer from '../InvitationRenderer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -10,6 +10,7 @@ const SPACING = 12;
 const BENTO_UNIT = (SCREEN_WIDTH - (SPACING * 4)) / 3;
 
 export default function TemplateSelector({ eventData, setDesignState, onNext }: any) {
+  // Named import must exist in DesignerConstants
   const dynamicTemplates = useMemo(() => getTemplatesForType(eventData.type), [eventData.type]);
 
   const pickCustomImage = async () => {
@@ -41,17 +42,37 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
       <View className="flex-row flex-wrap justify-between">
         {dynamicTemplates.map((style: any) => {
           const cardWidth = style.span === 3 ? SCREEN_WIDTH - (SPACING * 2) : (BENTO_UNIT * style.span) + (style.span > 1 ? SPACING : 0);
+          
           return (
             <TouchableOpacity 
               key={style.id} 
               onPress={() => {
-                setDesignState({ background: style.bg, overlayOpacity: style.overlayOpacity, elements: style.layout });
+                // MERGE LOGIC: Don't replace the elements object, merge styles into it
+                setDesignState((prev: any) => {
+                    const mergedElements = { ...prev.elements };
+                    Object.keys(style.layout).forEach(key => {
+                        mergedElements[key] = { ...mergedElements[key], ...style.layout[key] };
+                    });
+                    return {
+                        ...prev,
+                        background: style.bg,
+                        overlayOpacity: style.overlayOpacity,
+                        elements: mergedElements
+                    };
+                });
                 onNext();
               }} 
               style={{ width: cardWidth, height: style.height, marginBottom: SPACING }} 
               className="bg-white rounded-2xl overflow-hidden border border-brand-sand shadow-sm"
             >
-              <InvitationRenderer elements={style.layout} backgroundUrl={style.bg} overlayOpacity={style.overlayOpacity} containerWidth={cardWidth} aspectRatio={style.height / cardWidth} />
+              {/* Ensure InvitationRenderer receives merged elements for preview */}
+              <InvitationRenderer 
+                elements={style.layout} 
+                backgroundUrl={style.bg} 
+                overlayOpacity={style.overlayOpacity} 
+                containerWidth={cardWidth} 
+                aspectRatio={style.height / cardWidth} 
+              />
             </TouchableOpacity>
           );
         })}

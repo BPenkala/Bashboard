@@ -1,8 +1,3 @@
-/**
- * DesignerConstants.ts
- * Consolidates static data and template generation logic for the Design Studio.
- */
-
 // 1. EVENT CATEGORIES
 export const EVENT_TYPES = [
   'Birthday', 'Wedding', 'Dinner Party', 'Happy Hour', 'Baby Shower', 
@@ -56,7 +51,7 @@ const baseLayouts = {
 };
 
 // 4. TEMPLATE GENERATION LOGIC
-export const getTemplatesForType = (type: string) => {
+export function getTemplatesForType(type: string) {
     const themes: any = {
         'Birthday': [
             { bg: 'https://images.unsplash.com/photo-1530103862676-de3c9a59af38', color: '#FFF', style: 'modern' },
@@ -101,7 +96,7 @@ export const getTemplatesForType = (type: string) => {
     });
 
     return generatedTemplates;
-};
+}
 
 // 5. INITIAL STATE EXPORTS
 export const INITIAL_TEMPLATES = getTemplatesForType('Default');
