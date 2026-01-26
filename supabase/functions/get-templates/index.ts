@@ -21,9 +21,9 @@ serve(async (req) => {
   try {
     const { category, page = 1 } = await req.json();
     
-    // [SEC] Enabled editor's choice + safe search + refined backdrop design query
-    const query = encodeURIComponent(`${category} backdrop design`);
-    const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${query}&image_type=photo&orientation=vertical&safesearch=true&editors_choice=true&page=${page}&per_page=40`;
+    // [STRAT] category + " background" is the most reliable way to find high-quality backdrops
+    const query = encodeURIComponent(`${category} background`);
+    const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${query}&image_type=photo&orientation=vertical&safesearch=true&page=${page}&per_page=40`;
     
     const response = await fetch(url);
     const data = await response.json();

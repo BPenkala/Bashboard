@@ -23,19 +23,18 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
         .onStart(() => {
             runOnJS(onSelect)(id);
             context.value = { x: translateX.value, y: translateY.value };
+            // [QA] Native calls must be wrapped in runOnJS
             runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
         })
         .onUpdate((event) => {
             const nextX = context.value.x + (event.translationX ?? 0);
             const nextY = context.value.y + (event.translationY ?? 0);
 
-            // [HCI] Haptic Snap Points (Horizontal Center)
             const elWidth = (element.width ?? 100) * scale;
             const centerX = (canvasWidth / 2) - (elWidth / 2);
             
             if (Math.abs(nextX - centerX) < 5) {
                 translateX.value = centerX;
-                // [QA] FIX: Wrapped native haptic call in runOnJS to prevent crash
                 runOnJS(Haptics.selectionAsync)();
             } else {
                 translateX.value = nextX;
@@ -49,6 +48,7 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
     const tapGesture = Gesture.Tap().onStart(() => { runOnJS(onSelect)(id); });
     const composed = Gesture.Simultaneous(tapGesture, panGesture);
 
+    // [QA] Moved zIndex and borderWidth here to silence Reanimated warnings
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: translateX.value }, { translateY: translateY.value }],
         zIndex: isSelected ? 100 : 1,

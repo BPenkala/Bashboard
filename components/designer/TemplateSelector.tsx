@@ -6,11 +6,14 @@ import { LAYOUT_MANIFESTS } from '../../constants/DesignerConstants';
 import { useResponsiveGrid } from '../../hooks/useResponsiveGrid';
 import InvitationRenderer from '../InvitationRenderer';
 
+// [LDEV] Authorized connection to your backend
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_FUNCTION_URL = 'https://vyixmszlimyynkbvlhxp.supabase.co/functions/v1/get-templates';
+
 let GLOBAL_TEMPLATE_CACHE: Record<string, any[]> = {};
 
 export default function TemplateSelector({ eventData, setDesignState, onNext }: any) {
-  const { bentoUnit, gap } = useResponsiveGrid(12, 16);
+  const { bentoUnit, gap } = useResponsiveGrid(2, 16);
   const [items, setItems] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -25,10 +28,15 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
     let i = 0;
     while (i < itemList.length) {
         if (i % 3 === 0) {
-            rows.push({ type: 'full', id: `row-${i}-${itemList[i].id}`, item1: itemList[i] });
+            rows.push({ type: 'full', id: `row-f-${i}-${itemList[i].id}`, item1: itemList[i] });
             i += 1;
         } else {
-            rows.push({ type: 'split', id: `row-${i}-${itemList[i].id}`, item1: itemList[i], item2: itemList[i+1] });
+            rows.push({ 
+                type: 'split', 
+                id: `row-s-${i}-${itemList[i].id}`, 
+                item1: itemList[i], 
+                item2: itemList[i+1] || null 
+            });
             i += 2;
         }
     }
@@ -44,9 +52,14 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
     try {
       const response = await fetch(SUPABASE_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY || ''
+        },
         body: JSON.stringify({ category: eventData.type, page: pageNum }),
       });
+      
       const data = await response.json();
       const raw = data.templates || [];
 
@@ -62,7 +75,7 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
             const globalIdx = items.length + idx;
             const layout = layouts[globalIdx % layouts.length];
             const isFull = globalIdx % 3 === 0;
-            return { ...bg, layout, span: isFull ? 2 : 1, height: isFull ? 220 : 180 };
+            return { ...bg, layout, span: isFull ? 2 : 1, height: isFull ? 240 : 180 };
         });
 
       setItems(prev => {
@@ -72,10 +85,9 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
       });
 
       if (pageNum > 1) Haptics.selectionAsync();
-      if (newItems.length === 0) setIsEnd(true);
 
     } catch (err) {
-      console.error("Gallery Engine Error:", err);
+      console.error("[App] Gallery Fetch Failed:", err);
     } finally {
       setLoading(false);
       isFetching.current = false;
@@ -113,16 +125,27 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
   };
 
   const renderRow = ({ item }: any) => {
-    const w1 = (bentoUnit * item.item1.span) + (gap * (item.item1.span - 1));
+    const wFull = (bentoUnit * 2) + gap;
+    const wHalf = bentoUnit;
+    
     return (
         <View className="flex-row justify-between mb-4">
-            <TouchableOpacity onPress={() => handleSelect(item.item1)} style={{ width: w1, height: item.item1.height }} className="bg-white rounded-bento overflow-hidden border border-ink/5 shadow-sm relative">
-                <InvitationRenderer elements={item.item1.layout.elements} backgroundUrl={item.item1.bg} containerWidth={w1} eventData={eventData} />
+            <TouchableOpacity 
+                onPress={() => handleSelect(item.item1)} 
+                style={{ width: item.type === 'full' ? wFull : wHalf, height: item.item1.height }} 
+                className="bg-white rounded-bento overflow-hidden border border-ink/5 shadow-sm relative"
+            >
+                <InvitationRenderer elements={item.item1.layout.elements} backgroundUrl={item.item1.bg} containerWidth={item.type === 'full' ? wFull : wHalf} eventData={eventData} />
                 <View className="absolute bottom-2 right-2 bg-ink/80 px-2 py-1 rounded-md"><Text className="text-[8px] text-white font-poppins-bold uppercase">{item.item1.layout.label}</Text></View>
             </TouchableOpacity>
+
             {item.type === 'split' && item.item2 && (
-                <TouchableOpacity onPress={() => handleSelect(item.item2)} style={{ width: w1, height: item.item2.height }} className="bg-white rounded-bento overflow-hidden border border-ink/5 shadow-sm relative">
-                    <InvitationRenderer elements={item.item2.layout.elements} backgroundUrl={item.item2.bg} containerWidth={w1} eventData={eventData} />
+                <TouchableOpacity 
+                    onPress={() => handleSelect(item.item2)} 
+                    style={{ width: wHalf, height: item.item2.height }} 
+                    className="bg-white rounded-bento overflow-hidden border border-ink/5 shadow-sm relative"
+                >
+                    <InvitationRenderer elements={item.item2.layout.elements} backgroundUrl={item.item2.bg} containerWidth={wHalf} eventData={eventData} />
                     <View className="absolute bottom-2 right-2 bg-ink/80 px-2 py-1 rounded-md"><Text className="text-[8px] text-white font-poppins-bold uppercase">{item.item2.layout.label}</Text></View>
                 </TouchableOpacity>
             )}
@@ -136,7 +159,13 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
         data={buildRows(items)}
         renderItem={renderRow}
         keyExtractor={r => r.id}
-        onEndReached={() => { if (!loading && !isEnd) { setPage(p => p + 1); fetchTemplates(page + 1); } }}
+        onEndReached={() => { 
+          if (!loading && !isEnd) { 
+            const nextPage = page + 1;
+            setPage(nextPage); 
+            fetchTemplates(nextPage); 
+          } 
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={() => loading ? <View className="py-6"><ActivityIndicator color={theme.primary} /></View> : <View className="py-10 items-center opacity-40"><Text className="text-[10px] font-poppins-bold text-ink uppercase tracking-widest">End of Gallery</Text></View>}
         showsVerticalScrollIndicator={false}
