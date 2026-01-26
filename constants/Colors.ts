@@ -1,7 +1,7 @@
 // Bashboard/constants/Colors.ts
 
 export const theme = {
-  // YOUR NEW "SLATE & CORNFLOWER" PALETTE
+  // THE "SLATE & CORNFLOWER" PALETTE
   canvas:       '#F2F2F2', // Main background (Light Grey)
   primary:      '#88A2F2', // Primary actions (Cornflower Blue)
   secondary:    '#D0F2D3', // Success/Growth (Mint Green)

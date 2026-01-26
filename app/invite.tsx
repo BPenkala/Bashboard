@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Font from 'expo-font';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, LayoutAnimation, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, LayoutAnimation, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import EditorStage from '../components/designer/EditorStage';
@@ -10,11 +11,12 @@ import TemplateSelector from '../components/designer/TemplateSelector';
 import UtilityChecklist from '../components/designer/UtilityChecklist';
 
 import { theme } from '../constants/Colors';
-import { INITIAL_TEMPLATES } from '../constants/DesignerConstants';
+import { FALLBACK_FONTS, INITIAL_TEMPLATES } from '../constants/DesignerConstants';
 
 export default function InviteDesigner() {
   const router = useRouter();
   const [step, setStep] = useState<'form' | 'checklist' | 'template' | 'editor'>('form');
+  const [fontsReady, setFontsReady] = useState(false);
 
   const [eventData, setEventData] = useState({
     type: 'Birthday', name: '', date: new Date(), time: new Date(), location: '', isTimeTBD: false, useChecklist: false, useTimePoll: false,
@@ -29,10 +31,29 @@ export default function InviteDesigner() {
     } as Record<string, any>
   });
 
+  // [LDEV] TIER 2: Load Creative Fonts only when entering the studio.
+  useEffect(() => {
+    async function loadCreativeFonts() {
+      const fontKeys = Object.keys(FALLBACK_FONTS);
+      const promises = fontKeys.map(async (key) => {
+        try {
+          await Font.loadAsync({ [key]: FALLBACK_FONTS[key] });
+        } catch (e) {
+          console.warn(`Font load failed for ${key}, using system fallback.`);
+        }
+      });
+      await Promise.allSettled(promises);
+      setFontsReady(true);
+    }
+    loadCreativeFonts();
+  }, []);
+
   const nextStep = (target: typeof step) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setStep(target);
   };
+
+  if (!fontsReady) return <View className="flex-1 bg-canvas items-center justify-center"><ActivityIndicator size="large" color={theme.primary} /></View>;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-canvas">

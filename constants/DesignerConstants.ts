@@ -12,18 +12,11 @@ export const INITIAL_TEMPLATES = [
 ];
 
 export const FONT_OPTIONS = [
-    { label: 'Poppins', value: 'Poppins_700Bold' }, 
+    { label: 'Poppins (UI)', value: 'Poppins_700Bold' }, 
     { label: 'Playfair', value: 'PlayfairDisplay-Bold' },
     { label: 'Montserrat', value: 'Montserrat-Bold' },
     { label: 'Modern', value: 'Oswald-Bold' },
+    { label: 'Script', value: 'GreatVibes-Regular' }
 ];
 
 export const BRAND_COLORS = ['#88A2F2', '#ACBEF2', '#1D1F26', '#D0F2D3', '#F2F2F2', '#FFFFFF'];
-
-export const EVENT_TYPES = [
-  'Birthday', 'Wedding', 'Dinner Party', 'Happy Hour', 'Baby Shower', 
-  'Game Night', 'Networking', 'Trip', 'Anniversary', 'Graduation', 
-  'Housewarming', 'Bachelor Party', 'Bachelorette Party', 'Engagement', 
-  'Bridal Shower', 'Family Reunion', 'Holiday Party', 'Movie Night', 
-  'Brunch', 'Concert', 'Fundraiser', 'Workshop', 'Conference', 'Retreat'
-];

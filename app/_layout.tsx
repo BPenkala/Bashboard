@@ -9,7 +9,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppLoader from '../components/AppLoader';
 import { theme } from '../constants/Colors';
-import { FALLBACK_FONTS } from '../constants/DesignerConstants';
 import { DataProvider } from '../context/DataContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -19,13 +18,12 @@ export default function Layout() {
   const [isAppReady, setIsAppReady] = useState(false);
   const pathname = usePathname();
 
-  // [QA] Centralized Font Loading: Fixes "CTFontManagerError 104"
+  // [LDEV] TIER 1: Load ONLY local UI fonts here for an instant boot.
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
     Poppins_700Bold,
     Poppins_900Black,
-    ...FALLBACK_FONTS
   });
 
   useEffect(() => {
@@ -33,17 +31,13 @@ export default function Layout() {
   }, [pathname, showLoader]);
 
   useEffect(() => {
-    async function prepare() {
-      if (fontsLoaded) {
-        await SplashScreen.hideAsync();
-        setIsAppReady(true);
-      }
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+      setIsAppReady(true);
     }
-    prepare();
   }, [fontsLoaded]);
 
-  // Fail-safe: If fonts take too long, show the app with system fonts
-  if (!isAppReady && !fontsLoaded) return null;
+  if (!fontsLoaded || !isAppReady) return null;
 
   return (
     <DataProvider>

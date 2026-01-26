@@ -1,14 +1,13 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
-import { primitives } from '../constants/Colors';
+import { theme } from '../constants/Colors';
 
 const AnimatedLetter = ({ letter, index, size, color, font }: any) => {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    // 50ms stagger per letter for an "extravagant" reveal
     scale.value = withDelay(index * 50, withSpring(1, { damping: 8, stiffness: 120 }));
     opacity.value = withDelay(index * 50, withSpring(1));
   }, []);
@@ -33,12 +32,12 @@ export default function Wordmark({ size = 24 }: { size?: number }) {
     <View className="flex-row items-baseline">
       <View className="flex-row">
         {bash.map((l, i) => (
-          <AnimatedLetter key={`bash-${i}`} letter={l} index={i} size={size} color={primitives.cobalt} font="Poppins_900Black" />
+          <AnimatedLetter key={`bash-${i}`} letter={l} index={i} size={size} color={theme.ink} font="Poppins_900Black" />
         ))}
       </View>
       <View className="flex-row ml-1">
         {board.map((l, i) => (
-          <AnimatedLetter key={`board-${i}`} letter={l} index={i + 4} size={size * 0.95} color={primitives.cinnabar} font="Poppins_400Regular" />
+          <AnimatedLetter key={`board-${i}`} letter={l} index={i + 4} size={size * 0.95} color={theme.primary} font="Poppins_400Regular" />
         ))}
       </View>
     </View>
