@@ -10,12 +10,12 @@ interface InvitationRendererProps {
   overlayOpacity?: number;
   containerWidth?: number;
   aspectRatio?: number;
-  eventData?: any; // <--- The "Magic" Data Injection
+  eventData?: any;
 }
 
 /**
  * [LDEV] Optimized Invitation Renderer
- * Uses React.memo to prevent expensive re-renders during list scrolling.
+ * Resolves invisible text issues by providing hard fallbacks for color and content.
  */
 const InvitationRenderer = memo(({
   elements,
@@ -32,34 +32,37 @@ const InvitationRenderer = memo(({
 
   return (
     <View style={[styles.container, { width: containerWidth, height: containerWidth * aspectRatio }]}>
+      {/* [QA] Improved ImageBackground handling for more robust CDN loads */}
       <ImageBackground
         source={{ uri: backgroundUrl }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
+        fadeDuration={300}
       >
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0, 0, 0, ${overlayOpacity})` }]} />
+        {/* Background Overlay for Contrast */}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: overlayOpacity }]} />
         
         <View style={{ flex: 1 }}>
           {Object.keys(elements).map((key) => {
             const el = elements[key];
-            
-            if (el.visible === false) return null;
+            if (!el || el.visible === false) return null;
 
             // --- THE MAGIC: DYNAMIC CONTENT REPLACEMENT ---
-            // [STRAT] This maps your input form fields to the template slots
-            let displayText = el.text;
+            // [STRAT] Hobnob-style logic: Map form fields to template placeholders
+            let displayText = el.text || "";
             if (eventData) {
                 if (key === 'main') displayText = eventData.name || "Event Name";
                 else if (key === 'header') displayText = eventData.type || "You are invited";
                 else if (key.includes('date')) {
-                    displayText = eventData.date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                    displayText = eventData.date ? eventData.date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : "Date";
                 }
                 else if (key.includes('time')) {
-                    displayText = eventData.isTimeTBD ? 'TBD' : eventData.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    displayText = eventData.isTimeTBD ? 'TBD' : (eventData.time ? eventData.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "Time");
                 }
                 else if (key === 'location') displayText = eventData.location || "Location";
             }
 
+            // [HCI] Font hierarchy fallback
             const fontToUse = el.fontFamily 
               ? el.fontFamily 
               : el.isBold 
@@ -69,34 +72,25 @@ const InvitationRenderer = memo(({
             const positionStyle: any = {
                 position: 'absolute',
                 top: el.y * scale,
+                left: (el.x || 0) * scale,
+                width: (el.width || REFERENCE_WIDTH) * scale,
+                alignItems: el.align === 'center' ? 'center' : el.align === 'right' ? 'flex-end' : 'flex-start',
             };
-
-            if (el.x !== undefined) {
-                positionStyle.left = el.x * scale;
-            } else {
-                positionStyle.left = 0;
-                positionStyle.right = 0;
-                positionStyle.alignItems = el.align === 'center' ? 'center' : el.align === 'right' ? 'flex-end' : 'flex-start';
-                positionStyle.paddingHorizontal = 20 * scale;
-            }
-
-            if (el.width) {
-                positionStyle.width = el.width * scale;
-            }
 
             return (
               <View key={key} style={positionStyle}>
                 <Text 
                   style={{ 
-                    fontSize: el.size * scale, 
-                    color: el.color,
+                    fontSize: (el.size || 16) * scale, 
+                    color: el.color || '#FFFFFF', // [QA] CRITICAL: Hard fallback to white to ensure visibility
                     textAlign: el.align || 'left',
                     fontFamily: fontToUse,
                     fontStyle: el.isItalic ? 'italic' : 'normal',
                     textDecorationLine: el.isUnderline ? 'underline' : 'none',
-                    lineHeight: el.size * scale * (el.lineHeight || 1.2),
+                    lineHeight: (el.size || 16) * scale * (el.lineHeight || 1.2),
                     letterSpacing: el.tracking ? el.tracking * scale : 0
                   }}
+                  numberOfLines={2}
                 >
                   {displayText}
                 </Text>
@@ -111,7 +105,7 @@ const InvitationRenderer = memo(({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#333', // Darker fallback to help white text visibility while loading
     overflow: 'hidden',
   },
 });

@@ -52,27 +52,38 @@ const baseLayouts = {
 
 // 4. TEMPLATE GENERATION LOGIC
 export function getTemplatesForType(type: string) {
+    // [LDEV] Standardized Unsplash URL helper to ensure images actually load on mobile
+    const cleanUrl = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&q=80&w=800`;
+
     const themes: any = {
         'Birthday': [
-            { bg: 'https://images.unsplash.com/photo-1530103862676-de3c9a59af38', color: '#FFF', style: 'modern' },
-            { bg: 'https://images.unsplash.com/photo-1513151233558-d860c5398176', color: '#FFF', style: 'script' },
-            { bg: 'https://images.unsplash.com/photo-1464349153912-bc6163bd89a7', color: '#333', style: 'elegant' },
+            { bg: cleanUrl('1530103862676-de3c9a59af38'), color: '#FFFFFF', style: 'modern' },
+            { bg: cleanUrl('1513151233558-d860c5398176'), color: '#FFFFFF', style: 'script' },
+            { bg: cleanUrl('1464349153912-bc6163bd89a7'), color: '#FBF5DE', style: 'elegant' },
+            { bg: cleanUrl('1533294160022-41f3291560ed'), color: '#FFFFFF', style: 'modern' },
+            { bg: cleanUrl('1558636508-e05d1404416f'), color: '#FFFFFF', style: 'script' },
+            { bg: cleanUrl('1527529482725-288513c2bcad'), color: '#FBF5DE', style: 'elegant' },
+            { bg: cleanUrl('1512909006721-3d6018887183'), color: '#FFFFFF', style: 'modern' },
+            { bg: cleanUrl('1481162853359-d9965af3cb86'), color: '#FFFFFF', style: 'script' },
         ],
         'Wedding': [
-            { bg: 'https://images.unsplash.com/photo-1519225421980-715cb0202128', color: '#FFF', style: 'elegant' },
-            { bg: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622', color: '#FFF', style: 'script' },
-            { bg: 'https://images.unsplash.com/photo-1520854221256-17451cc330e7', color: '#FFF', style: 'modern' },
+            { bg: cleanUrl('1519225421980-715cb0202128'), color: '#FFFFFF', style: 'elegant' },
+            { bg: cleanUrl('1511795409834-ef04bbd61622'), color: '#FFFFFF', style: 'script' },
+            { bg: cleanUrl('1520854221256-17451cc330e7'), color: '#FBF5DE', style: 'modern' },
+            { bg: cleanUrl('1469334031218-e382a71b716b'), color: '#FFFFFF', style: 'elegant' },
         ],
         'Default': [
-            { bg: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30', color: '#FFF', style: 'modern' },
-            { bg: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745', color: '#FFF', style: 'script' },
-            { bg: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678', color: '#333', style: 'elegant' },
+            { bg: cleanUrl('1492684223066-81342ee5ff30'), color: '#FFFFFF', style: 'modern' },
+            { bg: cleanUrl('1470225620780-dba8ba36b745'), color: '#FFFFFF', style: 'script' },
+            { bg: cleanUrl('1505373877841-8d25f7d46678'), color: '#FBF5DE', style: 'elegant' },
+            { bg: cleanUrl('1514525253361-bee8718a300d'), color: '#FFFFFF', style: 'modern' },
         ]
     };
 
     const selectedTheme = themes[type] || themes['Default'];
     const generatedTemplates: any[] = [];
 
+    // Bento Pattern for 8 card slots
     const bentoPattern = [
         { span: 2, height: 260 }, { span: 1, height: 260 },
         { span: 1, height: 180 }, { span: 2, height: 180 },
@@ -81,17 +92,27 @@ export function getTemplatesForType(type: string) {
     ];
 
     bentoPattern.forEach((slot, index) => {
+        // [STRAT] Cycle through selectedTheme backgrounds for variety
         const theme = selectedTheme[index % selectedTheme.length];
         const layoutStyle = index % 2 === 0 ? theme.style : (theme.style === 'modern' ? 'elegant' : 'modern');
+        
+        // Deep clone layout to ensure no cross-contamination
+        const layout = JSON.parse(JSON.stringify(baseLayouts[layoutStyle as keyof typeof baseLayouts] || baseLayouts.modern));
+        
+        // Inject color and reset text
+        Object.keys(layout).forEach(key => {
+            layout[key].color = theme.color;
+        });
+
         generatedTemplates.push({
-            id: String(index),
+            id: `${type}-${index}`,
             name: `${type} ${index + 1}`,
             bg: theme.bg,
             color: theme.color,
             span: slot.span,
             height: slot.height,
-            overlayOpacity: 0.2,
-            layout: JSON.parse(JSON.stringify(baseLayouts[layoutStyle as keyof typeof baseLayouts] || baseLayouts.modern))
+            overlayOpacity: 0.3, 
+            layout: layout
         });
     });
 

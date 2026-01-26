@@ -1,80 +1,130 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import React, { useMemo } from 'react';
-import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { getTemplatesForType } from '../../constants/DesignerConstants';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, LayoutAnimation, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useResponsiveGrid } from '../../hooks/useResponsiveGrid';
 import InvitationRenderer from '../InvitationRenderer';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SPACING = 12;
-const BENTO_UNIT = (SCREEN_WIDTH - (SPACING * 4)) / 3;
+// [BEDEV] Your specific Supabase Endpoint
+const SUPABASE_FUNCTION_URL = 'https://vyixmszlimyynkbvlhxp.supabase.co/functions/v1/get-templates';
+
+// [LDEV] Layout Fallbacks to ensure text is visible on dynamic backgrounds
+const LAYOUT_MAP: any = {
+    modern: {
+        header: { y: 40, x: 20, width: 335, align: 'left', size: 10, fontFamily: 'Oswald-Regular', tracking: 2, color: '#FFFFFF' },
+        main: { y: 60, x: 20, width: 335, align: 'left', size: 42, fontFamily: 'Oswald-Bold', lineHeight: 1.1, color: '#FFFFFF' },
+        dateLabel: { y: 220, x: 20, width: 335, align: 'left', size: 14, fontFamily: 'Oswald-Medium', color: '#FFFFFF' },
+        timeLabel: { y: 240, x: 20, width: 335, align: 'left', size: 14, fontFamily: 'Oswald-Regular', color: '#FFFFFF' },
+        location: { y: 260, x: 20, width: 335, align: 'left', size: 12, fontFamily: 'Oswald-Regular', color: '#FFFFFF' }
+    },
+    elegant: {
+        header: { y: 30, x: 0, width: 375, align: 'center', size: 12, fontFamily: 'Montserrat-Regular', tracking: 3, color: '#FFFFFF' },
+        main: { y: 60, x: 0, width: 375, align: 'center', size: 32, fontFamily: 'PlayfairDisplay-ExtraBold', lineHeight: 1.2, color: '#FFFFFF' },
+        dateLabel: { y: 180, x: 0, width: 375, align: 'center', size: 16, fontFamily: 'Montserrat-Bold', color: '#FFFFFF' },
+        timeLabel: { y: 205, x: 0, width: 375, align: 'center', size: 16, fontFamily: 'Montserrat-Regular', color: '#FFFFFF' },
+        location: { y: 230, x: 0, width: 375, align: 'center', size: 14, fontFamily: 'Montserrat-Regular', color: '#FFFFFF' }
+    },
+    script: {
+        header: { y: 40, x: 0, width: 375, align: 'center', size: 14, fontFamily: 'GreatVibes-Regular', color: '#FFFFFF' },
+        main: { y: 80, x: 0, width: 375, align: 'center', size: 48, fontFamily: 'GreatVibes-Regular', color: '#FFFFFF' },
+        dateLabel: { y: 190, x: 0, width: 375, align: 'center', size: 18, fontFamily: 'GreatVibes-Regular', color: '#FFFFFF' },
+        timeLabel: { y: 215, x: 0, width: 375, align: 'center', size: 18, fontFamily: 'GreatVibes-Regular', color: '#FFFFFF' },
+        location: { y: 240, x: 0, width: 375, align: 'center', size: 14, fontFamily: 'GreatVibes-Regular', color: '#FFFFFF' }
+    }
+};
 
 export default function TemplateSelector({ eventData, setDesignState, onNext }: any) {
-  const dynamicTemplates = useMemo(() => getTemplatesForType(eventData.type), [eventData.type]);
+  const { bentoUnit, gap } = useResponsiveGrid(12, 16);
+  
+  // [QA] Initialize as empty array to prevent .map() from hitting 'undefined'
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const pickCustomImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
+  useEffect(() => {
+    async function fetchTemplates() {
+      setLoading(true);
+      setError(false);
+      try {
+        const response = await fetch(SUPABASE_FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category: eventData.type }),
+        });
 
-    if (!result.canceled) {
-      setDesignState((prev: any) => ({
-        ...prev,
-        background: result.assets[0].uri,
-        overlayOpacity: 0,
-      }));
-      onNext();
+        if (!response.ok) throw new Error('Backend failed');
+
+        const data = await response.json();
+        
+        // Safety check: ensure data.templates exists
+        if (data && data.templates) {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setTemplates(data.templates);
+        } else {
+            setTemplates([]);
+        }
+      } catch (err) {
+        console.error("Backend fetch failed:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+
+    fetchTemplates();
+  }, [eventData.type]);
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-cream">
+        <ActivityIndicator size="large" color="#DC3C22" />
+        <Text className="mt-4 font-poppins-bold text-brand-cobalt/40 uppercase text-[10px] tracking-widest">
+          Fetching variety...
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView className="flex-1 p-3">
-      <View className="flex-row justify-between items-center mb-4 px-3">
-        <Text className="text-brand-cinnabar text-[10px] font-poppins-bold uppercase tracking-widest">Step 3: Theme - {eventData.type}</Text>
-        <TouchableOpacity onPress={pickCustomImage} className="flex-row items-center bg-brand-midnight px-3 py-1 rounded-full">
-          <Ionicons name="cloud-upload-outline" size={14} color="white" />
-          <Text className="text-white text-[10px] font-poppins-bold uppercase ml-1">Upload Own</Text>
-        </TouchableOpacity>
+    <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+      <View className="flex-row justify-between items-center mb-4 px-1">
+        <Text className="text-brand-cinnabar text-[10px] font-poppins-bold uppercase tracking-widest">
+          Personalized Designs: {eventData.type}
+        </Text>
       </View>
-      <View className="flex-row flex-wrap justify-between">
-        {dynamicTemplates.map((style: any) => {
-          const cardWidth = style.span === 3 ? SCREEN_WIDTH - (SPACING * 2) : (BENTO_UNIT * style.span) + (style.span > 1 ? SPACING : 0);
-          
-          return (
-            <TouchableOpacity 
-              key={style.id} 
-              onPress={() => {
-                setDesignState((prev: any) => {
-                    const mergedElements = { ...prev.elements };
-                    Object.keys(style.layout).forEach(key => {
-                        mergedElements[key] = { ...mergedElements[key], ...style.layout[key] };
-                    });
-                    return {
-                        ...prev,
+
+      <View className="flex-row flex-wrap justify-between pb-20">
+          {/* [QA] Optional chaining ensures we never crash if templates is null */}
+          {templates?.map((style: any) => {
+              const cardWidth = (bentoUnit * (style.span || 1)) + (gap * ((style.span || 1) - 1));
+              
+              // Resolve layout from our local map based on what backend suggested
+              const currentLayout = LAYOUT_MAP[style.layoutType] || LAYOUT_MAP.modern;
+
+              return (
+                <TouchableOpacity 
+                  key={style.id} 
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    setDesignState((prev: any) => ({ 
+                        ...prev, 
                         background: style.bg,
-                        overlayOpacity: style.overlayOpacity,
-                        elements: mergedElements
-                    };
-                });
-                onNext();
-              }} 
-              style={{ width: cardWidth, height: style.height, marginBottom: SPACING }} 
-              className="bg-white rounded-2xl overflow-hidden border border-brand-sand shadow-sm"
-            >
-              {/* [HCI] Passing eventData here triggers the Magic Dynamic Preview */}
-              <InvitationRenderer 
-                elements={style.layout} 
-                backgroundUrl={style.bg} 
-                overlayOpacity={style.overlayOpacity} 
-                containerWidth={cardWidth} 
-                aspectRatio={style.height / cardWidth} 
-                eventData={eventData} // <--- Added this line
-              />
-            </TouchableOpacity>
-          );
-        })}
+                        overlayOpacity: 0.3,
+                        elements: { ...prev.elements, ...currentLayout }
+                    }));
+                    onNext();
+                  }}
+                  style={{ width: cardWidth, height: style.height || 180, marginBottom: 16 }}
+                  className="bg-white rounded-[24px] overflow-hidden border border-brand-sand/50 shadow-sm"
+                >
+                  <InvitationRenderer 
+                    elements={currentLayout} 
+                    backgroundUrl={style.bg} 
+                    containerWidth={cardWidth} 
+                    aspectRatio={(style.height || 180) / cardWidth}
+                    eventData={eventData} 
+                  />
+                </TouchableOpacity>
+              );
+          })}
       </View>
     </ScrollView>
   );
