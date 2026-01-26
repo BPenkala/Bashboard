@@ -1,35 +1,38 @@
 // Bashboard/constants/Colors.ts
 
-export const primitives = {
-  // THE FOUNDATION
-  cobalt:       '#3D74B6', // UI-1: Anchor (Hero Tiles)
-  cream:        '#FBF5DE', // UI-2: Canvas (App Background)
-  sand:         '#EAC8A6', // UI-3: Soft Divider (Utility Tiles)
-  cinnabar:     '#DC3C22', // UI-4: Pulse (High Priority)
-  midnight:     '#1B3352', // UI-5: Darkened Cobalt for text on Sand
+export const theme = {
+  // THE NEW "SLATE & CORNFLOWER" PALETTE
+  canvas:       '#F2F2F2', // Main background (Light Grey)
+  primary:      '#88A2F2', // Primary actions (Cornflower Blue)
+  secondary:    '#D0F2D3', // Success/Growth (Mint Green)
+  accent:       '#ACBEF2', // Secondary accent (Sky Blue)
+  surface:      '#FFFFFF', // Card backgrounds
+  
+  // TYPOGRAPHY
+  ink:          '#1D1F26', // High-contrast text (Midnight)
+  inkMuted:     '#6B7280', // Subtle labels
   white:        '#FFFFFF',
-  overlay:      'rgba(255, 255, 255, 0.05)', // For Glassmorphism Lite
+  
+  // GLASS & BORDERS
+  border:       'rgba(29, 31, 38, 0.05)',
+  glassBorder:  'rgba(255, 255, 255, 0.2)',
 };
 
-export const PALETTE = primitives;
+export const palette = theme;
 
-// THEME MAPPING based on Heritage Tech functional weights
-export const THEME = {
-  planner: {
-    primary: primitives.cobalt,
-    action: primitives.cinnabar,
-    highlight: 'rgba(61, 116, 182, 0.1)', // Subtle Cobalt tint
-  },
-  guest: {
-    primary: primitives.cinnabar,
-    action: primitives.cinnabar,
-    highlight: 'rgba(220, 60, 34, 0.1)', // Subtle Cinnabar tint
-  }
+// Safety Aliases for component stability
+export const primitives = {
+  midnight: theme.ink,
+  cream: theme.canvas,
+  sand: theme.accent,
+  cinnabar: theme.primary,
+  cobalt: theme.primary,
+  white: '#FFFFFF',
 };
 
 export const EDITOR_TEXT_COLORS = [
-  primitives.cobalt,
-  primitives.cinnabar,
-  primitives.midnight,
-  primitives.white,
+  theme.primary,
+  theme.ink,
+  theme.secondary,
+  theme.white,
 ];

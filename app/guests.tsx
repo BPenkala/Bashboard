@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, SafeAreaView, StatusBar } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router'; // FIXED: Restored hooks
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, SafeAreaView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { palette } from '../constants/Colors';
 import { useData } from '../context/DataContext';
-import { primitives } from '../constants/Colors';
 
 export default function GuestList() {
   const router = useRouter();
-  const { eventId } = useLocalSearchParams(); // Identify the event context
+  const { eventId } = useLocalSearchParams(); 
   const { guests, toggleGuestStatus, addGuest } = useData();
   const [newName, setNewName] = useState('');
 
-  // Filter guests to only show those for this specific event
   const currentGuests = guests.filter(g => g.eventId === eventId);
   const confirmedCount = currentGuests.filter(g => g.status === 'Attending').length;
 
@@ -23,42 +22,42 @@ export default function GuestList() {
   };
 
   return (
-    <View className="flex-1 bg-brand-cream">
+    <View className="flex-1 bg-editorial-canvas">
       <StatusBar barStyle="dark-content" />
       <SafeAreaView className="flex-1">
-        <View className="flex-1 p-6">
+        <View className="flex-1 p-5">
           
-          {/* Header */}
+          {/* Header: Editorial Porcelain Style */}
           <View className="flex-row items-center justify-between mb-8">
-             <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-brand-cobalt rounded-full items-center justify-center shadow-sm">
-               <Ionicons name="chevron-back" size={24} color="white" />
+             <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-editorial-muted/10">
+               <Ionicons name="chevron-back" size={24} color={palette.ink} />
              </TouchableOpacity>
-             <Text className="text-brand-cobalt text-xl font-poppins-bold">Guest Archives</Text>
+             <Text className="text-editorial-ink text-xl font-poppins-bold">Guest Archive</Text>
              <View className="w-10" />
           </View>
 
-          {/* Stats Bento */}
-          <View className="flex-row gap-3 mb-8">
-             <View className="flex-1 bg-brand-cinnabar/10 p-4 rounded-squircle items-center border border-brand-cinnabar/20">
-                <Text className="text-brand-cinnabar text-3xl font-poppins-black">{confirmedCount}</Text>
-                <Text className="text-brand-cinnabar/60 text-[10px] uppercase font-poppins-bold tracking-wider">Confirmed</Text>
+          {/* Stats Bento: Rose & Champagne Pivot */}
+          <View className="flex-row gap-4 mb-8">
+             <View className="flex-1 bg-editorial-rose p-5 rounded-bento items-center shadow-sm">
+                <Text className="text-white text-3xl font-poppins-black">{confirmedCount}</Text>
+                <Text className="text-white/80 text-[10px] uppercase font-poppins-bold tracking-widest mt-1">Confirmed</Text>
              </View>
-             <View className="flex-1 bg-brand-sand/30 p-4 rounded-squircle items-center border border-brand-sand">
-                <Text className="text-brand-cobalt text-3xl font-poppins-black">{currentGuests.length}</Text>
-                <Text className="text-brand-cobalt/60 text-[10px] uppercase font-poppins-bold tracking-wider">On List</Text>
+             <View className="flex-1 bg-editorial-champagne/40 p-5 rounded-bento items-center border border-editorial-champagne shadow-sm">
+                <Text className="text-editorial-ink text-3xl font-poppins-black">{currentGuests.length}</Text>
+                <Text className="text-editorial-ink/40 text-[10px] uppercase font-poppins-bold tracking-widest mt-1">Invited</Text>
              </View>
           </View>
 
-          {/* Add Guest Input */}
-          <View className="flex-row items-center bg-white rounded-2xl p-1 pl-5 mb-6 border border-brand-sand shadow-sm">
+          {/* Add Guest: 12px interactive radius */}
+          <View className="flex-row items-center bg-white rounded-inner p-1 pl-5 mb-8 border border-editorial-muted/10 shadow-sm">
              <TextInput 
                value={newName}
                onChangeText={setNewName}
-               placeholder="Add new guest..."
-               placeholderTextColor="#3D74B666"
-               className="flex-1 text-brand-cobalt h-12 font-poppins-reg"
+               placeholder="Full name..."
+               placeholderTextColor={palette.muted}
+               className="flex-1 text-editorial-ink h-12 font-poppins-reg"
              />
-             <TouchableOpacity onPress={handleAddGuest} className="w-12 h-12 bg-brand-cinnabar rounded-xl items-center justify-center">
+             <TouchableOpacity onPress={handleAddGuest} style={{ backgroundColor: palette.ink }} className="w-12 h-12 rounded-inner items-center justify-center">
                 <Ionicons name="add" size={20} color="white" />
              </TouchableOpacity>
           </View>
@@ -66,18 +65,19 @@ export default function GuestList() {
           <FlatList
              data={currentGuests}
              keyExtractor={item => item.id}
+             showsVerticalScrollIndicator={false}
              renderItem={({ item }) => (
                <TouchableOpacity 
                  onPress={() => toggleGuestStatus(item.id)}
-                 className="flex-row items-center justify-between py-5 border-b border-brand-sand/50"
+                 className="flex-row items-center justify-between py-5 border-b border-editorial-muted/5"
                >
                  <View className="flex-row items-center gap-4">
-                    <View className={`w-3 h-3 rounded-full ${item.status === 'Attending' ? 'bg-brand-cinnabar shadow-lg shadow-brand-cinnabar/50' : 'bg-brand-cobalt/20'}`} />
-                    <Text className={`text-lg font-poppins-med ${item.status === 'Attending' ? 'text-brand-cobalt' : 'text-brand-cobalt/40'}`}>
+                    <View className={`w-3 h-3 rounded-full ${item.status === 'Attending' ? 'bg-editorial-rose shadow-sm' : 'bg-editorial-muted/20'}`} />
+                    <Text className={`text-lg font-poppins-med ${item.status === 'Attending' ? 'text-editorial-ink' : 'text-editorial-muted'}`}>
                       {item.name}
                     </Text>
                  </View>
-                 {item.status === 'Attending' && <Ionicons name="checkmark-circle" size={22} color="#DC3C22" />}
+                 {item.status === 'Attending' && <Ionicons name="checkmark-circle" size={22} color={palette.rose} />}
                </TouchableOpacity>
              )}
           />

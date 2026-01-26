@@ -1,42 +1,36 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, SafeAreaView, StatusBar } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router'; // FIXED: Restored hooks
 import { Ionicons } from '@expo/vector-icons';
-import { primitives, PALETTE } from '../constants/Colors';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, SafeAreaView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { palette } from '../constants/Colors';
 
 export default function Registry() {
   const router = useRouter();
-  const { eventId } = useLocalSearchParams();
-  
-  // Note: For a real app, you'd add Registry items to DataContext. 
-  // For now, we'll keep the mock logic but ensure the layout is Heritage Tech.
-  const [items, setItems] = useState([{ id: '1', name: 'Leica M11', store: 'Heritage Camera' }]);
+  const [items] = useState([{ id: '1', name: 'Leica M11', store: 'Heritage Camera' }]);
 
   return (
-    <View className="flex-1 bg-brand-cream">
+    <View className="flex-1 bg-editorial-canvas">
       <StatusBar barStyle="dark-content" />
       <SafeAreaView className="flex-1">
-        <View className="p-6">
+        <View className="flex-1 p-6">
           
-          {/* Header */}
           <View className="flex-row items-center justify-between mb-8">
-            <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-brand-cobalt rounded-full items-center justify-center shadow-sm">
-              <Ionicons name="chevron-back" size={24} color="white" />
+            <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-editorial-muted/10 shadow-sm">
+              <Ionicons name="chevron-back" size={24} color={palette.ink} />
             </TouchableOpacity>
-            <Text className="text-brand-cobalt text-xl font-poppins-bold">Gift Registry</Text>
+            <Text className="text-xl font-poppins-bold text-editorial-ink">Registry Collection</Text>
             <View className="w-10" />
           </View>
 
-          {/* Add Item Banner */}
-          <View className="bg-brand-sand/20 p-8 rounded-squircle mb-8 border border-brand-sand">
-             <Text className="text-brand-midnight text-[10px] font-poppins-bold uppercase mb-4 tracking-widest">Contribute to Collection</Text>
+          <View className="bg-editorial-sage/10 p-8 rounded-bento mb-8 border border-editorial-sage/20 shadow-sm">
+             <Text className="text-editorial-ink text-[10px] font-poppins-bold uppercase mb-4 tracking-widest text-center">Contribute to the Archive</Text>
              <View className="flex-row gap-2">
                <TextInput 
-                  placeholder="Paste URL or Item name..." 
-                  placeholderTextColor="#3D74B666"
-                  className="flex-1 bg-white p-4 rounded-xl font-poppins-reg text-brand-cobalt" 
+                  placeholder="Paste product URL..." 
+                  placeholderTextColor={palette.muted}
+                  className="flex-1 bg-white p-4 rounded-inner font-poppins-reg text-editorial-ink shadow-sm" 
                />
-               <TouchableOpacity className="w-14 bg-brand-cobalt rounded-xl items-center justify-center">
+               <TouchableOpacity style={{ backgroundColor: palette.ink }} className="w-14 rounded-inner items-center justify-center shadow-sm">
                   <Ionicons name="add" size={28} color="white" />
                </TouchableOpacity>
              </View>
@@ -46,18 +40,18 @@ export default function Registry() {
             data={items}
             keyExtractor={item => item.id}
             renderItem={({ item }) => (
-              <View className="bg-white mb-4 p-6 rounded-squircle flex-row items-center justify-between border border-brand-sand/30 shadow-sm">
+              <View className="bg-white mb-4 p-5 rounded-bento flex-row items-center justify-between border border-editorial-muted/5 shadow-sm">
                 <View className="flex-row items-center gap-4">
-                  <View className="w-12 h-12 bg-brand-sand/20 rounded-full items-center justify-center">
-                    <Ionicons name="camera" size={22} color={primitives.cobalt} />
+                  <View className="w-14 h-14 bg-editorial-canvas rounded-inner items-center justify-center">
+                    <Ionicons name="gift-outline" size={24} color={palette.ink} />
                   </View>
                   <View>
-                    <Text className="text-brand-midnight font-poppins-bold text-lg">{item.name}</Text>
-                    <Text className="text-brand-cobalt text-[10px] font-poppins-black uppercase">{item.store}</Text>
+                    <Text className="text-editorial-ink font-poppins-bold text-lg leading-tight">{item.name}</Text>
+                    <Text className="text-editorial-rose text-[10px] font-poppins-black uppercase tracking-widest">{item.store}</Text>
                   </View>
                 </View>
                 <TouchableOpacity className="w-10 h-10 items-center justify-center">
-                    <Ionicons name="open-outline" size={20} color={primitives.cinnabar} />
+                    <Ionicons name="open-outline" size={20} color={palette.ink} />
                 </TouchableOpacity>
               </View>
             )}

@@ -1,40 +1,57 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { styled } from 'nativewind';
-
-// This allows us to pass custom classes to the View
-const StyledView = styled(View);
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { theme } from '../constants/Colors';
 
 interface BentoCardProps {
   title?: string;
   subtitle?: string;
   children: React.ReactNode;
-  className?: string; // For overriding sizes (e.g., w-full vs w-1/2)
+  className?: string; 
   onPress?: () => void;
-  color?: string; // Optional custom background color
+  color?: string; 
+  isStatic?: boolean;
 }
 
-export default function BentoCard({ title, subtitle, children, className, onPress, color }: BentoCardProps) {
+export default function BentoCard({ 
+  title, subtitle, children, className = "", onPress, color, isStatic = false 
+}: BentoCardProps) {
   const Container = onPress ? TouchableOpacity : View;
-  
-  // Default bg-white, but can be overridden
-  const bgClass = color ? '' : 'bg-white';
   
   return (
     <Container 
+      activeOpacity={0.9}
       onPress={onPress} 
-      className={`p-5 rounded-3xl shadow-sm mb-4 ${bgClass} ${className}`}
-      style={color ? { backgroundColor: color } : {}}
+      style={[
+        styles.cardBase, 
+        { backgroundColor: color || theme.surface },
+        !isStatic && styles.glassEdge
+      ]}
+      className={`p-5 mb-5 ${className}`}
     >
       {title && (
-        <View className="mb-2">
-          <Text className="text-lg font-bold text-gray-800">{title}</Text>
-          {subtitle && <Text className="text-sm text-gray-500">{subtitle}</Text>}
+        <View className="mb-3">
+          <Text className="text-xl font-poppins-bold text-ink leading-tight">{title}</Text>
+          {subtitle && (
+            <Text className="text-sm font-poppins-reg text-ink-muted mt-1">{subtitle}</Text>
+          )}
         </View>
       )}
-      <View>
-        {children}
-      </View>
+      <View className="flex-1">{children}</View>
     </Container>
   );
 }
+
+const styles = StyleSheet.create({
+  cardBase: {
+    borderRadius: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  glassEdge: {
+    borderWidth: 1,
+    borderColor: theme.border,
+  }
+});

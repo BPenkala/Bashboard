@@ -4,23 +4,20 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          cobalt: '#3D74B6',   // Hero / Anchor
-          cream: '#FBF5DE',    // Canvas Background
-          sand: '#EAC8A6',     // Utility
-          cinnabar: '#DC3C22', // High Priority
-          midnight: '#1B3352', // Deep Text
+        primary:   '#88A2F2', // Cornflower Blue
+        secondary: '#D0F2D3', // Mint Green
+        accent:    '#ACBEF2', // Sky Blue
+        canvas:    '#F2F2F2', // Light Grey
+        surface:   '#FFFFFF',
+        ink: {
+          DEFAULT: '#1D1F26',
+          muted:   '#6B7280',
         }
       },
       borderRadius: {
-        'squircle': '32px',    // Heritage Tech Curvature
-      },
-      fontFamily: {
-        'poppins-reg': ['Poppins_400Regular'],
-        'poppins-med': ['Poppins_500Medium'],
-        'poppins-bold': ['Poppins_700Bold'],
-        'poppins-black': ['Poppins_900Black'],
-      },
+        'bento': '28px',
+        'inner': '16px',
+      }
     },
   },
   plugins: [],
