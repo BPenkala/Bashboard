@@ -31,19 +31,16 @@ export default function InviteDesigner() {
     } as Record<string, any>
   });
 
-  // [LDEV] TIER 2: Load Creative Fonts only when entering the studio.
+  // [LDEV] TIER 2: Batch load the creative font bundle.
   useEffect(() => {
     async function loadCreativeFonts() {
-      const fontKeys = Object.keys(FALLBACK_FONTS);
-      const promises = fontKeys.map(async (key) => {
-        try {
-          await Font.loadAsync({ [key]: FALLBACK_FONTS[key] });
-        } catch (e) {
-          console.warn(`Font load failed for ${key}, using system fallback.`);
-        }
-      });
-      await Promise.allSettled(promises);
-      setFontsReady(true);
+      try {
+        await Font.loadAsync(FALLBACK_FONTS);
+      } catch (e) {
+        console.warn('Creative fonts failed to load:', e);
+      } finally {
+        setFontsReady(true);
+      }
     }
     loadCreativeFonts();
   }, []);
