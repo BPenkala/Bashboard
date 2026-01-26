@@ -13,9 +13,9 @@ export default function AppLoader({ onFinished }: { onFinished: () => void }) {
     frameRotate.value = withTiming(360, { duration: 2200 });
     const timer = setTimeout(onFinished, 2800);
     return () => clearTimeout(timer);
-  }, []);
+  }, [onFinished, progress, frameRotate]);
 
-  // [LDEV] Corrected: Accessing shared values without .value for "Inline Styles" logic
+  // [LDEV] Corrected: Removed `.value` access in inline styles by using hooks properly
   const bgStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(progress.value, [0, 0.7, 1], [theme.ink, theme.ink, theme.canvas])
   }));
@@ -26,12 +26,6 @@ export default function AppLoader({ onFinished }: { onFinished: () => void }) {
       { scale: interpolate(progress.value, [0, 0.5, 1], [0.8, 1.3, 0]) }
     ],
     opacity: interpolate(progress.value, [0, 0.1, 0.8, 1], [0, 1, 1, 0]),
-    borderWidth: 2,
-    borderColor: theme.primary,
-    borderRadius: 50,
-    width: 260,
-    height: 260,
-    position: 'absolute',
   }));
 
   const contentStyle = useAnimatedStyle(() => ({
@@ -41,7 +35,9 @@ export default function AppLoader({ onFinished }: { onFinished: () => void }) {
 
   return (
     <Animated.View exiting={FadeOut.duration(800)} style={[StyleSheet.absoluteFill, bgStyle, styles.container]}>
-      <Animated.View style={frameStyle} />
+      <Animated.View 
+        style={[frameStyle, { borderWidth: 2, borderColor: theme.primary, borderRadius: 50, width: 260, height: 260, position: 'absolute' }]} 
+      />
       <Animated.View style={contentStyle}><Wordmark size={48} /></Animated.View>
     </Animated.View>
   );

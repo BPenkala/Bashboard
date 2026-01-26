@@ -2,23 +2,18 @@ import { Image } from 'expo-image';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-const REFERENCE_WIDTH = 375; // The width at which the manifest was designed
+const REFERENCE_WIDTH = 375; 
 
 export default function InvitationRenderer({ elements, backgroundUrl, containerWidth, eventData }: any) {
-  // Scale factor to ensure the design looks good on thumbnails AND full screen
   const scale = containerWidth / REFERENCE_WIDTH;
 
-  // [LDEV] DATA INJECTION PIPELINE
-  // This memoizes the "Hydrated" elements (User Data + Manifest Style)
   const renderableElements = useMemo(() => {
     if (!elements) return [];
     
-    // Map standard manifest keys to user input
     return Object.keys(elements).map((key) => {
         const el = elements[key];
         let content = el.text;
 
-        // INJECTION LOGIC:
         if (eventData) {
             if (key === 'main' && eventData.name) content = eventData.name;
             if (key === 'dateLabel') {
@@ -41,25 +36,32 @@ export default function InvitationRenderer({ elements, backgroundUrl, containerW
       {renderableElements.map((el: any) => {
          if (el.visible === false) return null;
          
+         const fontSize = el.size * scale;
+         // [LDEV] SAFE ZONE CALCULATION
+         // We add padding to allow ascenders/descenders to render fully, 
+         // then use negative margins to pull the element back to its exact coordinate.
+         const safePadding = fontSize * 0.5; 
+
          return (
             <Text
                 key={el.key}
                 style={{
                     position: 'absolute',
-                    top: el.y * scale,
-                    left: el.x * scale,
-                    width: el.width * scale,
+                    top: (el.y * scale) - safePadding, // Offset up by padding amount
+                    left: (el.x * scale) - safePadding, // Offset left by padding amount
+                    width: (el.width * scale) + (safePadding * 2), // Expand width to compensate
                     textAlign: el.align,
-                    fontSize: el.size * scale,
-                    fontFamily: el.fontFamily, // Uses the loaded Expo Google Font
+                    fontSize: fontSize,
+                    fontFamily: el.fontFamily,
                     color: el.color,
-                    lineHeight: (el.lineHeight || 1.2) * (el.size * scale),
+                    lineHeight: (el.lineHeight || 1.2) * fontSize,
                     letterSpacing: (el.tracking || 0) * scale,
                     textTransform: el.uppercase ? 'uppercase' : 'none',
-                    // Text Shadow for readability against photos
                     textShadowColor: 'rgba(0,0,0,0.3)',
                     textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 4
+                    textShadowRadius: 4,
+                    // The Magic Fix:
+                    padding: safePadding, 
                 }}
             >
                 {el.content}

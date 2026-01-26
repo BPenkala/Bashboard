@@ -8,15 +8,24 @@ import InvitationRenderer from '../InvitationRenderer';
 
 const SUPABASE_FUNCTION_URL = 'https://vyixmszlimyynkbvlhxp.supabase.co/functions/v1/get-templates';
 
+// [LDEV] PERFORMANCE CACHE
+// Stores results so we don't re-fetch when moving between steps
+let TEMPLATE_CACHE: { category: string; data: any[] } | null = null;
+
 export default function TemplateSelector({ eventData, setDesignState, onNext }: any) {
   const { bentoUnit, gap } = useResponsiveGrid(12, 16);
   const [generatedTemplates, setGeneratedTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // [LDEV] THE COMBINATORIAL ENGINE
-  // Fetches raw backgrounds and multiplies them by our Design Manifests
   useEffect(() => {
     async function generateSmartFlyers() {
+      // 1. Check Cache First
+      if (TEMPLATE_CACHE && TEMPLATE_CACHE.category === eventData.type) {
+        setGeneratedTemplates(TEMPLATE_CACHE.data);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const response = await fetch(SUPABASE_FUNCTION_URL, {
@@ -27,23 +36,23 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
         const data = await response.json();
         const rawBackgrounds = data.templates || [];
 
-        // MIXING ALGORITHM:
-        // We take the raw backgrounds and apply a cycle of our 5 Layout Manifests to them.
-        // This ensures maximum variety (Background A + Modern, Background B + Elegant, etc.)
         const layouts = Object.values(LAYOUT_MANIFESTS);
         
         const smartFlyers = rawBackgrounds.map((bgItem: any, index: number) => {
-            // Cycle through layouts based on index
             const layoutStyle = layouts[index % layouts.length];
+            const calculatedSpan = index % 3 === 0 ? 2 : 1;
             
             return {
                 id: `${bgItem.id}-${layoutStyle.id}`,
                 bg: bgItem.bg,
-                layout: layoutStyle, // Embed the full manifest
-                span: bgItem.span,
-                height: bgItem.height
+                layout: layoutStyle, 
+                span: calculatedSpan,
+                height: calculatedSpan === 2 ? 220 : 180 
             };
         });
+
+        // 2. Write to Cache
+        TEMPLATE_CACHE = { category: eventData.type, data: smartFlyers };
 
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setGeneratedTemplates(smartFlyers);
@@ -58,10 +67,35 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
   }, [eventData.type]);
 
   const handleOpenPixabay = async () => {
-    const url = 'https://pixabay.com';
-    try {
-        await Linking.openURL(url);
-    } catch (e) {}
+    try { await Linking.openURL('https://pixabay.com'); } catch (e) {}
+  };
+
+  // [LDEV] DATA HYDRATION LOGIC
+  // This injects the user's form data into the template elements BEFORE they reach the editor.
+  const handleSelectTemplate = (template: any) => {
+    // Deep copy to avoid mutating the manifest
+    const hydratedElements = JSON.parse(JSON.stringify(template.layout.elements));
+
+    Object.keys(hydratedElements).forEach((key) => {
+        const el = hydratedElements[key];
+        
+        // Injection Rules
+        if (key === 'main' && eventData.name) el.text = eventData.name;
+        if (key === 'location' && eventData.location) el.text = eventData.location;
+        if (key === 'dateLabel') {
+             const dateStr = new Date(eventData.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+             const timeStr = new Date(eventData.time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+             el.text = `${dateStr} • ${timeStr}`;
+        }
+    });
+
+    setDesignState((prev: any) => ({ 
+        ...prev, 
+        background: template.bg, 
+        elements: hydratedElements // Save the hydrated elements
+    }));
+    
+    onNext();
   };
 
   if (loading) return <View className="flex-1 items-center justify-center bg-canvas"><ActivityIndicator size="large" color={theme.primary} /></View>;
@@ -75,19 +109,10 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
               return (
                 <TouchableOpacity 
                   key={template.id} 
-                  onPress={() => {
-                    // Hydrate the Editor with this specific combination
-                    setDesignState((prev: any) => ({ 
-                        ...prev, 
-                        background: template.bg, 
-                        elements: { ...template.layout.elements } 
-                    }));
-                    onNext();
-                  }}
-                  style={{ width: cardWidth, height: template.height || 180, marginBottom: 16 }}
+                  onPress={() => handleSelectTemplate(template)}
+                  style={{ width: cardWidth, height: template.height, marginBottom: 16 }}
                   className="bg-white rounded-bento overflow-hidden border border-ink/5 shadow-sm relative"
                 >
-                   {/* [LDEV] REAL-TIME COMPOSITING: Pass user data to the renderer */}
                   <InvitationRenderer 
                     elements={template.layout.elements} 
                     backgroundUrl={template.bg} 
@@ -95,7 +120,6 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
                     eventData={eventData} 
                   />
                   
-                  {/* Style Badge */}
                   <View className="absolute bottom-2 right-2 bg-ink/80 px-2 py-1 rounded-md">
                     <Text className="text-[8px] text-white font-poppins-bold uppercase">{template.layout.label}</Text>
                   </View>

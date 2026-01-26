@@ -1,72 +1,83 @@
+import * as Haptics from 'expo-haptics';
 import React, { memo, useEffect } from 'react';
 import { Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePosition, scale }: any) => {
-    if (element.visible === false) return null;
+const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePosition, scale, canvasWidth }: any) => {
+    if (!element || element.visible === false) return null;
 
-    // Use shared values strictly for animation properties
-    const translateX = useSharedValue(element.x ? element.x * scale : 0);
-    const translateY = useSharedValue(element.y * scale);
+    // [LDEV] PREVENT NAN: Always use safe defaults before shared value initialization
+    const safeX = (element.x ?? 0) * scale;
+    const safeY = (element.y ?? 0) * scale;
+
+    const translateX = useSharedValue(safeX);
+    const translateY = useSharedValue(safeY);
     const context = useSharedValue({ x: 0, y: 0 });
 
-    // Sync position when element props update (e.g., from template switch)
     useEffect(() => {
-        translateX.value = element.x ? element.x * scale : 0;
-        translateY.value = element.y * scale;
+        translateX.value = withSpring((element.x ?? 0) * scale);
+        translateY.value = withSpring((element.y ?? 0) * scale);
     }, [element.x, element.y, scale, translateX, translateY]);
 
     const panGesture = Gesture.Pan()
         .onStart(() => {
             runOnJS(onSelect)(id);
             context.value = { x: translateX.value, y: translateY.value };
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         })
         .onUpdate((event) => {
-            translateX.value = context.value.x + event.translationX;
-            translateY.value = context.value.y + event.translationY;
+            const nextX = context.value.x + (event.translationX ?? 0);
+            const nextY = context.value.y + (event.translationY ?? 0);
+
+            // [HCI] Haptic Snap Points (Horizontal Center)
+            const elWidth = (element.width ?? 100) * scale;
+            const centerX = (canvasWidth / 2) - (elWidth / 2);
+            
+            if (Math.abs(nextX - centerX) < 5) {
+                translateX.value = centerX;
+                Haptics.selectionAsync();
+            } else {
+                translateX.value = nextX;
+            }
+            translateY.value = nextY;
         })
         .onEnd(() => {
-            const finalX = translateX.value / scale;
-            const finalY = translateY.value / scale;
-            runOnJS(onUpdatePosition)(id, finalX, finalY);
+            runOnJS(onUpdatePosition)(id, translateX.value / (scale || 1), translateY.value / (scale || 1));
         });
 
     const tapGesture = Gesture.Tap().onStart(() => { runOnJS(onSelect)(id); });
     const composed = Gesture.Simultaneous(tapGesture, panGesture);
 
-    // [QA] Correct way to apply shared values to styles to avoid "Reading from value during render" warnings
-    const rStyle = useAnimatedStyle(() => ({
-        transform: [
-            { translateX: translateX.value }, 
-            { translateY: translateY.value }
-        ]
+    // [QA] RESOLVED: No .value access outside of this hook to silence warnings
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: translateX.value }, { translateY: translateY.value }]
     }));
-
-    const fontToUse = element.fontFamily || (element.isBold ? 'Poppins_700Bold' : 'Poppins_400Regular');
 
     return (
         <GestureDetector gesture={composed}>
             <Animated.View style={[
-                rStyle, 
+                animatedStyle, 
                 { 
                     position: 'absolute', top: 0, left: 0,
                     width: element.width ? element.width * scale : undefined,
-                    borderWidth: isSelected ? 2 : 0, 
-                    borderColor: '#DC3C22', // Brand Cinnabar
+                    borderWidth: isSelected ? 1 : 0, 
+                    borderColor: '#88A2F2', 
                     borderStyle: 'dashed',
-                    padding: 8,
+                    padding: 4,
                     zIndex: isSelected ? 100 : 1 
                 }
             ]}>
                 <Text style={{
-                    fontSize: element.size * scale,
-                    color: element.color,
-                    fontFamily: fontToUse,
-                    fontStyle: element.isItalic ? 'italic' : 'normal',
-                    textDecorationLine: element.isUnderline ? 'underline' : 'none',
-                    letterSpacing: element.tracking ? element.tracking * scale : 0,
-                    textAlign: element.align || 'left',
+                    fontSize: (element.size ?? 20) * scale,
+                    color: element.color ?? '#FFFFFF',
+                    fontFamily: element.fontFamily ?? 'Poppins_700Bold',
+                    textAlign: element.align ?? 'center',
+                    textTransform: element.uppercase ? 'uppercase' : 'none',
+                    letterSpacing: (element.tracking ?? 0) * scale,
+                    textShadowColor: 'rgba(0,0,0,0.3)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 3
                 }}>
                     {element.text}
                 </Text>
