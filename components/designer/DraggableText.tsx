@@ -1,22 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import { Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
-export default function DraggableText({ id, element, isSelected, onSelect, onUpdatePosition, scale }: any) {
+const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePosition, scale }: any) => {
     if (element.visible === false) return null;
 
-    const initialX = element.x ? element.x * scale : 0;
-    const initialY = element.y * scale;
-
-    const translateX = useSharedValue(initialX);
-    const translateY = useSharedValue(initialY);
+    // Use shared values strictly for animation properties
+    const translateX = useSharedValue(element.x ? element.x * scale : 0);
+    const translateY = useSharedValue(element.y * scale);
     const context = useSharedValue({ x: 0, y: 0 });
 
+    // Sync position when element props update (e.g., from template switch)
     useEffect(() => {
         translateX.value = element.x ? element.x * scale : 0;
         translateY.value = element.y * scale;
-    }, [element.x, element.y, scale]);
+    }, [element.x, element.y, scale, translateX, translateY]);
 
     const panGesture = Gesture.Pan()
         .onStart(() => {
@@ -36,8 +35,12 @@ export default function DraggableText({ id, element, isSelected, onSelect, onUpd
     const tapGesture = Gesture.Tap().onStart(() => { runOnJS(onSelect)(id); });
     const composed = Gesture.Simultaneous(tapGesture, panGesture);
 
+    // [QA] Correct way to apply shared values to styles to avoid "Reading from value during render" warnings
     const rStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: translateX.value }, { translateY: translateY.value }]
+        transform: [
+            { translateX: translateX.value }, 
+            { translateY: translateY.value }
+        ]
     }));
 
     const fontToUse = element.fontFamily || (element.isBold ? 'Poppins_700Bold' : 'Poppins_400Regular');
@@ -50,7 +53,7 @@ export default function DraggableText({ id, element, isSelected, onSelect, onUpd
                     position: 'absolute', top: 0, left: 0,
                     width: element.width ? element.width * scale : undefined,
                     borderWidth: isSelected ? 2 : 0, 
-                    borderColor: '#DC3C22', // primitives.cinnabar
+                    borderColor: '#DC3C22', // Brand Cinnabar
                     borderStyle: 'dashed',
                     padding: 8,
                     zIndex: isSelected ? 100 : 1 
@@ -70,4 +73,6 @@ export default function DraggableText({ id, element, isSelected, onSelect, onUpd
             </Animated.View>
         </GestureDetector>
     );
-}
+});
+
+export default DraggableText;

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ImageBackground, StyleSheet, Dimensions } from 'react-native';
+import React, { memo } from 'react';
+import { Dimensions, ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const REFERENCE_WIDTH = 375;
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -10,15 +10,21 @@ interface InvitationRendererProps {
   overlayOpacity?: number;
   containerWidth?: number;
   aspectRatio?: number;
+  eventData?: any; // <--- The "Magic" Data Injection
 }
 
-export default function InvitationRenderer({
+/**
+ * [LDEV] Optimized Invitation Renderer
+ * Uses React.memo to prevent expensive re-renders during list scrolling.
+ */
+const InvitationRenderer = memo(({
   elements,
   backgroundUrl,
   overlayOpacity = 0.1,
   containerWidth = SCREEN_WIDTH,
-  aspectRatio = 1.5, 
-}: InvitationRendererProps) {
+  aspectRatio = 1.5,
+  eventData
+}: InvitationRendererProps) => {
   
   const scale = containerWidth / REFERENCE_WIDTH;
 
@@ -33,14 +39,27 @@ export default function InvitationRenderer({
       >
         <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0, 0, 0, ${overlayOpacity})` }]} />
         
-        <View className="flex-1">
+        <View style={{ flex: 1 }}>
           {Object.keys(elements).map((key) => {
             const el = elements[key];
             
-            // VISIBILITY CHECK
             if (el.visible === false) return null;
 
-            // PRIORITY: Specific Font Family > Bold/Black Logic > Default
+            // --- THE MAGIC: DYNAMIC CONTENT REPLACEMENT ---
+            // [STRAT] This maps your input form fields to the template slots
+            let displayText = el.text;
+            if (eventData) {
+                if (key === 'main') displayText = eventData.name || "Event Name";
+                else if (key === 'header') displayText = eventData.type || "You are invited";
+                else if (key.includes('date')) {
+                    displayText = eventData.date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+                else if (key.includes('time')) {
+                    displayText = eventData.isTimeTBD ? 'TBD' : eventData.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                }
+                else if (key === 'location') displayText = eventData.location || "Location";
+            }
+
             const fontToUse = el.fontFamily 
               ? el.fontFamily 
               : el.isBold 
@@ -79,7 +98,7 @@ export default function InvitationRenderer({
                     letterSpacing: el.tracking ? el.tracking * scale : 0
                   }}
                 >
-                  {el.text}
+                  {displayText}
                 </Text>
               </View>
             );
@@ -88,7 +107,7 @@ export default function InvitationRenderer({
       </ImageBackground>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -96,3 +115,5 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
+
+export default InvitationRenderer;

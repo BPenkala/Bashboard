@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useMemo } from 'react';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { getTemplatesForType } from '../../constants/DesignerConstants'; // Verify this path
+import { getTemplatesForType } from '../../constants/DesignerConstants';
 import InvitationRenderer from '../InvitationRenderer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -10,7 +10,6 @@ const SPACING = 12;
 const BENTO_UNIT = (SCREEN_WIDTH - (SPACING * 4)) / 3;
 
 export default function TemplateSelector({ eventData, setDesignState, onNext }: any) {
-  // Named import must exist in DesignerConstants
   const dynamicTemplates = useMemo(() => getTemplatesForType(eventData.type), [eventData.type]);
 
   const pickCustomImage = async () => {
@@ -47,7 +46,6 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
             <TouchableOpacity 
               key={style.id} 
               onPress={() => {
-                // MERGE LOGIC: Don't replace the elements object, merge styles into it
                 setDesignState((prev: any) => {
                     const mergedElements = { ...prev.elements };
                     Object.keys(style.layout).forEach(key => {
@@ -65,13 +63,14 @@ export default function TemplateSelector({ eventData, setDesignState, onNext }: 
               style={{ width: cardWidth, height: style.height, marginBottom: SPACING }} 
               className="bg-white rounded-2xl overflow-hidden border border-brand-sand shadow-sm"
             >
-              {/* Ensure InvitationRenderer receives merged elements for preview */}
+              {/* [HCI] Passing eventData here triggers the Magic Dynamic Preview */}
               <InvitationRenderer 
                 elements={style.layout} 
                 backgroundUrl={style.bg} 
                 overlayOpacity={style.overlayOpacity} 
                 containerWidth={cardWidth} 
                 aspectRatio={style.height / cardWidth} 
+                eventData={eventData} // <--- Added this line
               />
             </TouchableOpacity>
           );
