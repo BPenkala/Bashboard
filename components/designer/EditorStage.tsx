@@ -113,7 +113,7 @@ export default function EditorStage({ designState, setDesignState }: any) {
                         <Text className={`font-poppins-bold ${currentEl.uppercase ? 'text-white' : 'text-ink'}`}>UPPERCASE</Text>
                     </TouchableOpacity>
                     <View className="flex-1 bg-ink/5 p-4 rounded-2xl flex-row justify-around items-center">
-                        {/* [QA] FIXED: Switched to MaterialIcons for alignment */}
+                        {/* [QA] FIXED: Switched to MaterialIcons for alignment to resolve ionicons errors */}
                         {['left', 'center', 'right'].map((a: any) => (
                             <TouchableOpacity key={a} onPress={() => updateElement(selectedElement, { align: a })}>
                                 <MaterialIcons name={`format-align-${a}` as any} size={20} color={currentEl.align === a ? theme.primary : theme.ink} />

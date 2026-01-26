@@ -7,7 +7,6 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 
 const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePosition, scale, canvasWidth }: any) => {
     if (!element || element.visible === false) return null;
 
-    // [LDEV] PREVENT NAN: Always use safe defaults before shared value initialization
     const safeX = (element.x ?? 0) * scale;
     const safeY = (element.y ?? 0) * scale;
 
@@ -18,13 +17,13 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
     useEffect(() => {
         translateX.value = withSpring((element.x ?? 0) * scale);
         translateY.value = withSpring((element.y ?? 0) * scale);
-    }, [element.x, element.y, scale, translateX, translateY]);
+    }, [element.x, element.y, scale]);
 
     const panGesture = Gesture.Pan()
         .onStart(() => {
             runOnJS(onSelect)(id);
             context.value = { x: translateX.value, y: translateY.value };
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
         })
         .onUpdate((event) => {
             const nextX = context.value.x + (event.translationX ?? 0);
@@ -36,7 +35,8 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
             
             if (Math.abs(nextX - centerX) < 5) {
                 translateX.value = centerX;
-                Haptics.selectionAsync();
+                // [QA] FIX: Wrapped native haptic call in runOnJS to prevent crash
+                runOnJS(Haptics.selectionAsync)();
             } else {
                 translateX.value = nextX;
             }
@@ -49,9 +49,10 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
     const tapGesture = Gesture.Tap().onStart(() => { runOnJS(onSelect)(id); });
     const composed = Gesture.Simultaneous(tapGesture, panGesture);
 
-    // [QA] RESOLVED: No .value access outside of this hook to silence warnings
     const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: translateX.value }, { translateY: translateY.value }]
+        transform: [{ translateX: translateX.value }, { translateY: translateY.value }],
+        zIndex: isSelected ? 100 : 1,
+        borderWidth: isSelected ? 1 : 0,
     }));
 
     return (
@@ -61,11 +62,9 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
                 { 
                     position: 'absolute', top: 0, left: 0,
                     width: element.width ? element.width * scale : undefined,
-                    borderWidth: isSelected ? 1 : 0, 
                     borderColor: '#88A2F2', 
                     borderStyle: 'dashed',
                     padding: 4,
-                    zIndex: isSelected ? 100 : 1 
                 }
             ]}>
                 <Text style={{

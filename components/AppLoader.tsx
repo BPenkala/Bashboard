@@ -15,8 +15,7 @@ export default function AppLoader({ onFinished }: { onFinished: () => void }) {
     return () => clearTimeout(timer);
   }, [onFinished, progress, frameRotate]);
 
-  // [LDEV] Corrected: Removed `.value` access in inline styles by using hooks properly
-  const bgStyle = useAnimatedStyle(() => ({
+  const animatedContainerStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(progress.value, [0, 0.7, 1], [theme.ink, theme.ink, theme.canvas])
   }));
 
@@ -34,9 +33,9 @@ export default function AppLoader({ onFinished }: { onFinished: () => void }) {
   }));
 
   return (
-    <Animated.View exiting={FadeOut.duration(800)} style={[StyleSheet.absoluteFill, bgStyle, styles.container]}>
+    <Animated.View exiting={FadeOut.duration(800)} style={[StyleSheet.absoluteFill, animatedContainerStyle, styles.container]}>
       <Animated.View 
-        style={[frameStyle, { borderWidth: 2, borderColor: theme.primary, borderRadius: 50, width: 260, height: 260, position: 'absolute' }]} 
+        style={[frameStyle, { borderWidth: 2, borderColor: theme.primary, borderRadius: 130, width: 260, height: 260, position: 'absolute' }]} 
       />
       <Animated.View style={contentStyle}><Wordmark size={48} /></Animated.View>
     </Animated.View>
