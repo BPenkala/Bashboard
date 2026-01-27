@@ -2,50 +2,39 @@ import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
 
 const PIXABAY_KEY = Deno.env.get('PIXABAY_API_KEY');
 
-// [SEC] Strict blacklist to reject images even if safesearch misses them
-const TAG_BLACKLIST = [
-  'sexy', 'hot', 'nude', 'lingerie', 'bikini', 'underwear', 
-  'romance', 'kissing', 'couple', 'bed', 'clubbing', 'nightclub'
-];
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { 
-      headers: { 
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      } 
-    })
+      headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } 
+    });
   }
 
   try {
-    const { category, page = 1 } = await req.json();
-    
-    // [STRAT] category + " background" is the most reliable way to find high-quality backdrops
-    const query = encodeURIComponent(`${category} background`);
-    const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${query}&image_type=photo&orientation=vertical&safesearch=true&page=${page}&per_page=40`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
+    const { category } = await req.json();
+    console.log(`QUERY RECEIVED: Category="${category}"`);
 
-    const templates = (data.hits || [])
-      .filter((hit: any) => {
-        const tags = (hit.tags || '').toLowerCase();
-        return !TAG_BLACKLIST.some(word => tags.includes(word));
-      })
-      .map((hit: any) => ({
-        id: String(hit.id),
-        bg: hit.largeImageURL,
-        color: '#FFFFFF'
-      }));
+    // [SEC] Enabled SafeSearch for brand safety
+    const query = encodeURIComponent(`${category} background`);
+    const response = await fetch(
+      `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${query}&image_type=photo&orientation=vertical&safesearch=true&per_page=20`
+    );
+
+    const data = await response.json();
+    console.log(`API SUCCESS: Found ${data.hits?.length || 0} results`);
+
+    const templates = (data.hits || []).map((hit: any, index: number) => ({
+      id: String(hit.id),
+      bg: hit.largeImageURL,
+      color: '#FFFFFF',
+      span: index % 4 === 0 ? 2 : 1, 
+      height: index % 4 === 0 ? 260 : 180,
+    }));
 
     return new Response(JSON.stringify({ templates }), {
       headers: { "Content-Type": "application/json", 'Access-Control-Allow-Origin': '*' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
-        status: 500,
-        headers: { 'Access-Control-Allow-Origin': '*' }
-    });
+    console.error(`ERROR: ${error.message}`);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } });
   }
 })

@@ -12,24 +12,26 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
 
     const translateX = useSharedValue(safeX);
     const translateY = useSharedValue(safeY);
+    const rotation = useSharedValue(element.rotation || 0); // [LDEV] Shared value for rotation
     const context = useSharedValue({ x: 0, y: 0 });
 
     useEffect(() => {
         translateX.value = withSpring((element.x ?? 0) * scale);
         translateY.value = withSpring((element.y ?? 0) * scale);
-    }, [element.x, element.y, scale]);
+        rotation.value = withSpring(element.rotation || 0); // [QA] Added smooth spring for rotation slider
+    }, [element.x, element.y, element.rotation, scale]);
 
     const panGesture = Gesture.Pan()
         .onStart(() => {
             runOnJS(onSelect)(id);
             context.value = { x: translateX.value, y: translateY.value };
-            // [QA] Native calls must be wrapped in runOnJS
             runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
         })
         .onUpdate((event) => {
             const nextX = context.value.x + (event.translationX ?? 0);
             const nextY = context.value.y + (event.translationY ?? 0);
 
+            // [HCI] Haptic Snap Points (Horizontal Center)
             const elWidth = (element.width ?? 100) * scale;
             const centerX = (canvasWidth / 2) - (elWidth / 2);
             
@@ -48,9 +50,12 @@ const DraggableText = memo(({ id, element, isSelected, onSelect, onUpdatePositio
     const tapGesture = Gesture.Tap().onStart(() => { runOnJS(onSelect)(id); });
     const composed = Gesture.Simultaneous(tapGesture, panGesture);
 
-    // [QA] Moved zIndex and borderWidth here to silence Reanimated warnings
     const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: translateX.value }, { translateY: translateY.value }],
+        transform: [
+            { translateX: translateX.value }, 
+            { translateY: translateY.value },
+            { rotate: `${rotation.value}deg` } // [QA] Hardware-accelerated rotation
+        ],
         zIndex: isSelected ? 100 : 1,
         borderWidth: isSelected ? 1 : 0,
     }));

@@ -2,12 +2,13 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
-import { ImageBackground, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../../constants/Colors';
-import { COLOR_PALETTE, FONT_OPTIONS } from '../../constants/DesignerConstants';
+import { COLOR_PALETTE, FONT_OPTIONS, ROTATION_LIMITS } from '../../constants/DesignerConstants';
 import DraggableText from './DraggableText';
+import ZoomableBackground from './ZoomableBackground'; // New Import
 
-export default function EditorStage({ designState, setDesignState }: any) {
+export default function EditorStage({ designState, setDesignState, onBack }: any) {
   const [activeTab, setActiveTab] = useState<'edit' | 'font' | 'color' | 'style'>('edit');
   const [selectedElement, setSelectedElement] = useState<string>('main');
 
@@ -29,10 +30,24 @@ export default function EditorStage({ designState, setDesignState }: any) {
 
   return (
     <View className="flex-1 bg-ink">
-      {/* 1. FLOATING CANVAS */}
+      {/* [HCI] Navigation Affordance: Header with Back Button */}
+      <View className="flex-row items-center justify-between px-6 py-4">
+        <TouchableOpacity 
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onBack(); }}
+          className="w-10 h-10 bg-white/10 rounded-full items-center justify-center"
+        >
+          <Ionicons name="arrow-back" size={20} color="white" />
+        </TouchableOpacity>
+        <Text className="text-white font-poppins-bold uppercase text-[10px] tracking-widest">Designer</Text>
+        <TouchableOpacity className="bg-primary px-4 py-2 rounded-full">
+           <Text className="text-white font-poppins-bold text-[10px] uppercase">Finish</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 1. FLOATING CANVAS WITH ZOOM CAPABILITIES */}
       <View className="flex-1 items-center justify-center p-4">
           <View style={{ width: 330, height: 495, borderRadius: 24, overflow: 'hidden', shadowOpacity: 0.3, shadowRadius: 30, backgroundColor: theme.canvas }}>
-            <ImageBackground source={{ uri: designState.background }} style={{ flex: 1 }}>
+            <ZoomableBackground source={designState.background}>
                 <View style={{ flex: 1, backgroundColor: `rgba(0,0,0, ${designState.overlayOpacity || 0.2})` }}>
                     {Object.keys(designState.elements).map(key => (
                         <DraggableText 
@@ -42,12 +57,12 @@ export default function EditorStage({ designState, setDesignState }: any) {
                         />
                     ))}
                 </View>
-            </ImageBackground>
+            </ZoomableBackground>
           </View>
       </View>
 
       {/* 2. ADOBE-STYLE CONTEXTUAL BAR */}
-      <View style={{ height: 260 }} className="bg-white rounded-t-[40px] px-6 pt-6 shadow-2xl">
+      <View style={{ height: 280 }} className="bg-white rounded-t-[40px] px-6 pt-6 shadow-2xl">
         <View className="flex-row justify-between mb-6 px-2">
             {[
                 { id: 'edit', icon: 'create-outline', label: 'Edit' },
@@ -69,13 +84,31 @@ export default function EditorStage({ designState, setDesignState }: any) {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {activeTab === 'edit' && (
-                <View className="w-full bg-ink/5 p-4 rounded-2xl">
-                    <Text className="text-ink/40 text-[9px] font-poppins-bold uppercase mb-2">Text Scale</Text>
-                    <Slider 
-                        value={currentEl.size || 20} minimumValue={10} maximumValue={120} 
-                        onValueChange={v => updateElement(selectedElement, { size: Math.round(v) })} 
-                        minimumTrackTintColor={theme.primary} thumbTintColor={theme.ink} 
-                    />
+                <View className="gap-y-4">
+                    <View className="w-full bg-ink/5 p-4 rounded-2xl">
+                        <Text className="text-ink/40 text-[9px] font-poppins-bold uppercase mb-2">Text Scale: {currentEl.size || 20}pt</Text>
+                        <Slider 
+                            value={currentEl.size || 20} minimumValue={10} maximumValue={120} 
+                            onValueChange={v => updateElement(selectedElement, { size: Math.round(v) })} 
+                            minimumTrackTintColor={theme.primary} thumbTintColor={theme.ink} 
+                        />
+                    </View>
+                    <View className="w-full bg-ink/5 p-4 rounded-2xl">
+                        <View className="flex-row justify-between items-center mb-2">
+                            <Text className="text-ink/40 text-[9px] font-poppins-bold uppercase">Rotation: {Math.round(currentEl.rotation || 0)}°</Text>
+                            <TouchableOpacity onPress={() => updateElement(selectedElement, { rotation: 0 })}>
+                                <Text className="text-[9px] font-poppins-bold text-primary uppercase">Reset</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Slider 
+                            value={currentEl.rotation || 0} 
+                            minimumValue={ROTATION_LIMITS.MIN} 
+                            maximumValue={ROTATION_LIMITS.MAX} 
+                            step={ROTATION_LIMITS.STEP}
+                            onValueChange={v => updateElement(selectedElement, { rotation: Math.round(v) })} 
+                            minimumTrackTintColor={theme.primary} thumbTintColor={theme.ink} 
+                        />
+                    </View>
                 </View>
             )}
 
@@ -113,7 +146,6 @@ export default function EditorStage({ designState, setDesignState }: any) {
                         <Text className={`font-poppins-bold ${currentEl.uppercase ? 'text-white' : 'text-ink'}`}>UPPERCASE</Text>
                     </TouchableOpacity>
                     <View className="flex-1 bg-ink/5 p-4 rounded-2xl flex-row justify-around items-center">
-                        {/* [QA] FIXED: Switched to MaterialIcons for alignment to resolve ionicons errors */}
                         {['left', 'center', 'right'].map((a: any) => (
                             <TouchableOpacity key={a} onPress={() => updateElement(selectedElement, { align: a })}>
                                 <MaterialIcons name={`format-align-${a}` as any} size={20} color={currentEl.align === a ? theme.primary : theme.ink} />

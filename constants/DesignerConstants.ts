@@ -23,6 +23,12 @@ export const FALLBACK_FONTS: Record<string, any> = {
   'Raleway-Bold': Raleway_700Bold,
 };
 
+export const ROTATION_LIMITS = {
+  MIN: 0,
+  MAX: 360,
+  STEP: 1
+};
+
 export const LAYOUT_MANIFESTS: Record<string, any> = {
     modern: { id: 'modern', label: 'Impact', elements: { 
         header: { text: 'JOIN US FOR', y: 60, x: 24, width: 327, align: 'left', size: 12, fontFamily: 'Oswald-Bold', tracking: 4, color: '#FFFFFF', uppercase: true },
