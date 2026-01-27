@@ -5,7 +5,8 @@ import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Te
 import BentoCard from '../components/BentoCard';
 import Wordmark from '../components/Wordmark';
 import Colors from '../constants/Colors';
-import { supabase } from '../utils/supabase'; // Resolved!
+// Corrected path: index.tsx and utils/ are siblings inside the app/ folder
+import { supabase } from './utils/supabase';
 
 const { width } = Dimensions.get('window');
 

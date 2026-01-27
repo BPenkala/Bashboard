@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; // Updated from deprecated import
 import BackgroundPicker from '../components/designer/BackgroundPicker';
 import ChoiceStage from '../components/designer/ChoiceStage';
 import EditorStage from '../components/designer/EditorStage';
@@ -15,7 +16,8 @@ type InviteStep = 'details' | 'choice' | 'templates' | 'upload' | 'editor';
 export default function InviteScreen() {
   const router = useRouter();
   const haptics = useHaptics();
-  const { saveInvitation, isSaving } = useData();
+  // SPC FIX: Extract data from context to pass to forms
+  const { saveInvitation, isSaving, eventDetails, setEventDetails } = useData();
   const [step, setStep] = useState<InviteStep>('details');
 
   const handleFinish = useCallback(async () => {
@@ -23,18 +25,26 @@ export default function InviteScreen() {
     const result = await saveInvitation();
     
     if (result.success) {
-      Alert.alert("Success!", "Your invitation has been saved to your Bashboard.", [
-        { text: "View Dashboard", onPress: () => router.replace('/') }
+      Alert.alert("Success!", "Invitation saved.", [
+        { text: "Dashboard", onPress: () => router.replace('/') }
       ]);
     } else {
-      Alert.alert("Error", result.error || "Failed to save invitation");
+      Alert.alert("Error", result.error || "Failed to save");
     }
   }, [saveInvitation, router, haptics]);
 
   const renderStep = () => {
     switch (step) {
       case 'details':
-        return <EventForm onNext={() => setStep('choice')} />;
+        // SPC FIX: Inject required props to prevent 'undefined' crash in EventForm
+        return (
+          <EventForm 
+            eventData={eventDetails} 
+            setEventData={setEventDetails} 
+            onNext={() => setStep('choice')} 
+            onBack={() => router.back()}
+          />
+        );
       case 'choice':
         return (
           <ChoiceStage 
@@ -44,28 +54,13 @@ export default function InviteScreen() {
           />
         );
       case 'templates':
-        return (
-          <TemplateSelector 
-            onNext={() => setStep('editor')} 
-            onBack={() => setStep('choice')} 
-          />
-        );
+        return <TemplateSelector onNext={() => setStep('editor')} onBack={() => setStep('choice')} />;
       case 'upload':
-        return (
-          <BackgroundPicker 
-            onNext={() => setStep('editor')} 
-            onBack={() => setStep('choice')} 
-          />
-        );
+        return <BackgroundPicker onNext={() => setStep('editor')} onBack={() => setStep('choice')} />;
       case 'editor':
-        return (
-          <EditorStage 
-            onFinish={handleFinish} 
-            onBack={() => setStep('choice')} 
-          />
-        );
+        return <EditorStage onFinish={handleFinish} onBack={() => setStep('choice')} />;
       default:
-        return <EventForm onNext={() => setStep('choice')} />;
+        return <EventForm eventData={eventDetails} setEventData={setEventDetails} onNext={() => setStep('choice')} onBack={() => {}} />;
     }
   };
 
@@ -84,13 +79,8 @@ export default function InviteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-  },
-  content: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: Colors.light.background },
+  content: { flex: 1 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255,255,255,0.7)',
