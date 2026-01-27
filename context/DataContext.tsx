@@ -1,123 +1,113 @@
-import React, { createContext, ReactNode, useContext, useMemo, useState } from 'react';
+import { decode } from 'base64-arraybuffer';
+import * as FileSystem from 'expo-file-system';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
+// Ensure this path matches your project structure: utils/supabase.ts
+import { supabase } from '../utils/supabase';
 
-// --- Types ---
-export type TaskStatus = 'Todo' | 'InProgress' | 'Done';
-
-export interface Task {
-  id: string;
-  eventId: string; 
-  title: string;
-  status: TaskStatus;
+interface DesignerState {
+  backgroundUri: string | null;
+  textElements: any[];
 }
 
-export interface Guest {
-  id: string;
-  eventId: string; 
+interface EventDetails {
   name: string;
-  status: 'Attending' | 'Not Attending' | 'Maybe';
-  dietary: string;
-}
-
-export interface UserProfile {
-  name: string;
-  bio: string;
-  profileImage: string | null;
-}
-
-// NEW: System Preferences Type
-export interface UserSettings {
-  hapticsEnabled: boolean;
+  location: string;
+  date: Date;
+  type: string;
 }
 
 interface DataContextType {
-  tasks: Task[];
-  guests: Guest[];
-  userProfile: UserProfile;
-  settings: UserSettings; // Integrated settings state
-  addTask: (eventId: string, title: string) => void;
-  removeTask: (id: string) => void;
-  moveTask: (id: string, newStatus: TaskStatus) => void;
-  addGuest: (eventId: string, name: string) => void;
-  toggleGuestStatus: (id: string) => void;
-  updateProfile: (updates: Partial<UserProfile>) => void;
-  updateSettings: (updates: Partial<UserSettings>) => void; // Settings action
+  eventDetails: EventDetails;
+  setEventDetails: (details: EventDetails) => void;
+  designerState: DesignerState;
+  setDesignerState: (state: DesignerState) => void;
+  saveInvitation: () => Promise<{ success: boolean; error?: string }>;
+  isSaving: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', eventId: '1', title: 'Book Venue', status: 'Done' },
-    { id: '2', eventId: '1', title: 'Send Invites', status: 'InProgress' },
-    { id: '3', eventId: '2', title: 'Order Superhero Cake', status: 'Todo' },
-  ]);
-
-  const [guests, setGuests] = useState<Guest[]>([
-    { id: '1', eventId: '1', name: 'Alice Johnson', status: 'Attending', dietary: 'Vegan' },
-    { id: '2', eventId: '2', name: 'Bob Smith', status: 'Maybe', dietary: 'None' },
-  ]);
-
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: 'Bryan',
-    bio: 'Event Planning Extraordinaire',
-    profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop',
+  const [isSaving, setIsSaving] = useState(false);
+  const [eventDetails, setEventDetails] = useState<EventDetails>({
+    name: '',
+    location: '',
+    date: new Date(),
+    type: 'Party',
   });
 
-  // Default settings initialized to enabled
-  const [settings, setSettings] = useState<UserSettings>({
-    hapticsEnabled: true,
+  const [designerState, setDesignerState] = useState<DesignerState>({
+    backgroundUri: null,
+    textElements: [],
   });
 
-  const addTask = (eventId: string, title: string) => {
-    const newTask: Task = { id: Date.now().toString(), eventId, title, status: 'Todo' };
-    setTasks(prev => [...prev, newTask]);
-  };
+  const saveInvitation = async () => {
+    setIsSaving(true);
+    try {
+      // 1. Auth Check
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Please log in to save your invitation.");
 
-  const removeTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-  };
+      let finalBackgroundUrl = designerState.backgroundUri;
 
-  const moveTask = (id: string, newStatus: TaskStatus) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
-  };
+      // 2. Image Upload Logic (Internal to context for atomicity)
+      if (designerState.backgroundUri && (designerState.backgroundUri.startsWith('file') || designerState.backgroundUri.startsWith('content'))) {
+        const fileExt = designerState.backgroundUri.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const base64 = await FileSystem.readAsStringAsync(designerState.backgroundUri, { 
+          encoding: FileSystem.EncodingType.Base64 
+        });
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('invitations')
+          .upload(fileName, decode(base64), { 
+            contentType: `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
+            upsert: true 
+          });
 
-  const addGuest = (eventId: string, name: string) => {
-    const newGuest: Guest = { id: Date.now().toString(), eventId, name, status: 'Maybe', dietary: 'None' };
-    setGuests(prev => [...prev, newGuest]);
-  };
+        if (uploadError) throw uploadError;
 
-  const toggleGuestStatus = (id: string) => {
-    setGuests(prev => prev.map(g => {
-      if (g.id !== id) return g;
-      const nextStatus = g.status === 'Attending' ? 'Not Attending' : g.status === 'Not Attending' ? 'Maybe' : 'Attending';
-      return { ...g, status: nextStatus };
-    }));
-  };
+        const { data: urlData } = supabase.storage
+          .from('invitations')
+          .getPublicUrl(fileName);
+        
+        finalBackgroundUrl = urlData.publicUrl;
+      }
 
-  const updateProfile = (updates: Partial<UserProfile>) => {
-    setUserProfile(prev => ({ ...prev, ...updates }));
-  };
+      // 3. Database Insertion
+      const { error: dbError } = await supabase
+        .from('events')
+        .insert({
+          user_id: user.id,
+          name: eventDetails.name,
+          location: eventDetails.location,
+          date: eventDetails.date.toISOString(),
+          event_type: eventDetails.type,
+          background_url: finalBackgroundUrl,
+          design_state: designerState.textElements,
+        });
 
-  const updateSettings = (updates: Partial<UserSettings>) => {
-    setSettings(prev => ({ ...prev, ...updates }));
-  };
+      if (dbError) throw dbError;
 
-  const contextValue = useMemo(() => ({
-    tasks,
-    guests,
-    userProfile,
-    settings,
-    addTask,
-    removeTask,
-    moveTask,
-    addGuest,
-    toggleGuestStatus,
-    updateProfile,
-    updateSettings
-  }), [tasks, guests, userProfile, settings]);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Save Error:", error.message);
+      return { success: false, error: error.message };
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <DataContext.Provider value={contextValue}>
+    <DataContext.Provider value={{ 
+      eventDetails, 
+      setEventDetails, 
+      designerState, 
+      setDesignerState, 
+      saveInvitation,
+      isSaving 
+    }}>
       {children}
     </DataContext.Provider>
   );
@@ -125,6 +115,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
 export const useData = () => {
   const context = useContext(DataContext);
-  if (!context) throw new Error('useData must be used within a DataProvider');
+  if (context === undefined) {
+    throw new Error('useData must be used within a DataProvider');
+  }
   return context;
 };
