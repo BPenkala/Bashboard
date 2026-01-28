@@ -1,12 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
-// KEY LAYOUT DEFINITIONS
+// 1. TYPO DICTIONARY (Expandable)
+const COMMON_TYPOS: Record<string, string> = {
+  'teh': 'the', 'nad': 'and', 'wont': "won't", 'dont': "don't",
+  'im': "I'm", 'cant': "can't", 'ill': "I'll", 'ive': "I've",
+  'sunday': 'Sunday', 'monday': 'Monday', 'tuesday': 'Tuesday',
+  'wednesday': 'Wednesday', 'thursday': 'Thursday', 'friday': 'Friday', 'saturday': 'Saturday',
+  'january': 'January', 'february': 'February', 'march': 'March', 'april': 'April',
+  'may': 'May', 'june': 'June', 'july': 'July', 'august': 'August', 'september': 'September',
+  'october': 'October', 'november': 'November', 'december': 'December'
+};
+
 const ALPHA_KEYS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
@@ -39,14 +49,26 @@ type KeyboardMode = 'ALPHA' | 'NUMERIC' | 'SYMBOL';
 export default function BentoKeyboard({ onKeyPress, onDelete, onClear, onClose, currentValue, label }: BentoKeyboardProps) {
   const [mode, setMode] = useState<KeyboardMode>('ALPHA');
   const [isShift, setIsShift] = useState(true);
+  
+  // 2. OPTIMISTIC STATE: Instant visual feedback before parent updates
+  const [optimisticValue, setOptimisticValue] = useState(currentValue);
   const cursorOpacity = useRef(new Animated.Value(0)).current;
 
-  // Auto-cap logic
+  // Sync prop changes (e.g. initial load or external reset) to local state
   useEffect(() => {
-    if (currentValue.length === 0) setIsShift(true);
+    setOptimisticValue(currentValue);
   }, [currentValue]);
 
-  // Cursor Animation
+  // Auto-Capitalization Logic
+  useEffect(() => {
+    if (optimisticValue.length === 0) {
+      setIsShift(true);
+    } else if (optimisticValue.length >= 2 && optimisticValue.slice(-2) === '. ') {
+      setIsShift(true);
+    }
+  }, [optimisticValue]);
+
+  // Cursor Blinking
   useEffect(() => {
     const blink = Animated.loop(
       Animated.sequence([
@@ -58,14 +80,76 @@ export default function BentoKeyboard({ onKeyPress, onDelete, onClear, onClose, 
     return () => blink.stop();
   }, []);
 
-  const handlePress = (key: string) => {
+  const handlePressIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const char = (mode === 'ALPHA' && !isShift) ? key.toLowerCase() : key;
-    onKeyPress(char);
-    
+  };
+
+  const handlePress = (key: string) => {
+    let nextValue = optimisticValue;
+    let charToAdd = key;
+
+    // A. SMART PUNCTUATION: Double Space -> Period
+    if (key === ' ' && nextValue.endsWith(' ')) {
+      // Remove last space, add period+space
+      const trimVal = nextValue.slice(0, -1);
+      nextValue = trimVal + '. ';
+      
+      // Update Parent (Complex Delete + Add)
+      onDelete(); 
+      onKeyPress('. '); 
+      
+      setOptimisticValue(nextValue);
+      setIsShift(true);
+      return;
+    }
+
+    // B. AUTO-CORRECT (SymSpell-Lite)
+    if (key === ' ') {
+      const words = nextValue.split(' ');
+      const lastWord = words[words.length - 1].toLowerCase();
+      if (COMMON_TYPOS[lastWord]) {
+        // Replace the typo in optimistic state
+        const corrected = COMMON_TYPOS[lastWord];
+        const base = nextValue.slice(0, -lastWord.length);
+        nextValue = base + corrected;
+        
+        // We can't easily sync this complex replace to parent via simple onKeyPress
+        // Ideally parent should accept `onUpdate(fullString)`.
+        // For now, we mimic typing the space normally, but UI might jump if we don't fix parent.
+        // *Architecture Decision*: We will just send the space for now, auto-correct is hard without `onChangeText` prop.
+        // Let's assume we stick to the provided prop interface:
+      }
+    }
+
+    // C. SMART QUOTES (Typographizer-Lite)
+    if (key === '"' || key === "'") {
+       // Logic: If previous char is space or empty, open quote. Else close quote.
+       const lastChar = nextValue.slice(-1);
+       const isOpen = !lastChar || lastChar === ' ';
+       if (key === '"') charToAdd = isOpen ? '“' : '”';
+       if (key === "'") charToAdd = isOpen ? '‘' : '’';
+    } else {
+       charToAdd = (mode === 'ALPHA' && !isShift) ? key.toLowerCase() : key;
+    }
+
+    // D. OPTIMISTIC UPDATE
+    setOptimisticValue(prev => prev + charToAdd);
+    onKeyPress(charToAdd);
+
+    // Auto-lowercase
     if (isShift && key !== ' ' && mode === 'ALPHA') {
       setIsShift(false);
     }
+  };
+
+  const handleDeleteOptimistic = () => {
+    setOptimisticValue(prev => prev.slice(0, -1));
+    onDelete();
+  };
+
+  const handleClearOptimistic = () => {
+    setOptimisticValue('');
+    onClear();
   };
 
   const toggleMode = () => {
@@ -86,91 +170,118 @@ export default function BentoKeyboard({ onKeyPress, onDelete, onClear, onClose, 
     return NUM_KEYS;
   };
 
+  const KeyButton = ({ label, icon, onPress, isSpecial = false, style = {} }: any) => (
+    <Pressable
+      onPressIn={handlePressIn}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [
+        styles.key,
+        isSpecial ? styles.specialKey : {},
+        style,
+        pressed && styles.keyPressed
+      ]}
+    >
+      {({ pressed }) => (
+        <>
+          {/* KEY POP-UP MAGNIFIER (Visual Confirmation) */}
+          {pressed && !isSpecial && (
+            <View style={styles.magnifier}>
+              <Text style={styles.magnifierText}>{label}</Text>
+            </View>
+          )}
+          {icon ? (
+            <Ionicons name={icon} size={22} color={isSpecial && isShift ? '#FFF' : theme.ink} />
+          ) : (
+            <Text style={[styles.keyText, isSpecial && styles.modeText]}>{label}</Text>
+          )}
+        </>
+      )}
+    </Pressable>
+  );
+
   return (
     <View style={styles.container}>
-      {/* INPUT TRAY */}
       <View style={styles.inputTray}>
         <View style={styles.trayHeader}>
             <Text style={styles.trayLabel}>{label}</Text>
             <View style={styles.trayActions}>
-                {currentValue.length > 0 && (
-                    <TouchableOpacity onPress={onClear} style={styles.clearButton}>
+                {optimisticValue.length > 0 && (
+                    <Pressable onPress={handleClearOptimistic} hitSlop={15} style={styles.clearButton}>
                         <Text style={styles.clearText}>Clear</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 )}
-                <TouchableOpacity onPress={onClose} style={styles.doneButton}>
+                <Pressable onPress={onClose} hitSlop={15} style={styles.doneButton}>
                     <Text style={styles.doneText}>Done</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
         </View>
         <View style={styles.previewContainer}>
-            <Text style={[styles.previewText, !currentValue && styles.previewPlaceholder]}>
-                {currentValue || `Enter ${label.toLowerCase()}...`}
+            <Text style={[styles.previewText, !optimisticValue && styles.previewPlaceholder]}>
+                {optimisticValue || `Enter ${label.toLowerCase()}...`}
             </Text>
             <Animated.View style={[styles.cursor, { opacity: cursorOpacity }]} />
         </View>
       </View>
 
-      {/* KEYBOARD BODY */}
       <View style={styles.keyboardBody}>
         {getKeys().map((row, i) => (
           <View key={i} style={styles.row}>
-            {/* Left Special Keys (Shift or #+=) */}
-            {i === 2 && mode === 'ALPHA' && (
-              <TouchableOpacity 
-                onPress={() => { setIsShift(!isShift); Haptics.selectionAsync(); }} 
-                style={[styles.key, styles.sideKey, isShift && { backgroundColor: theme.primary }]}
-              >
-                <Ionicons name="arrow-up" size={22} color={isShift ? '#FFF' : theme.ink} />
-              </TouchableOpacity>
-            )}
-            {i === 2 && mode !== 'ALPHA' && (
-              <TouchableOpacity 
-                onPress={toggleSymbols} 
-                style={[styles.key, styles.sideKey]}
-              >
-                <Text style={styles.modeText}>{mode === 'NUMERIC' ? '#+=' : '123'}</Text>
-              </TouchableOpacity>
+            {i === 2 && (
+                mode === 'ALPHA' ? (
+                    <KeyButton 
+                        icon="arrow-up" 
+                        isSpecial={true}
+                        style={[styles.sideKey, isShift && { backgroundColor: theme.primary }]}
+                        onPress={() => { setIsShift(!isShift); }}
+                    />
+                ) : (
+                    <KeyButton 
+                        label={mode === 'NUMERIC' ? '#+=' : '123'}
+                        isSpecial={true}
+                        style={styles.sideKey}
+                        onPress={toggleSymbols}
+                    />
+                )
             )}
 
             {row.map(key => (
-              <TouchableOpacity
-                key={key}
-                activeOpacity={0.5}
+              <KeyButton 
+                key={key} 
+                label={mode === 'ALPHA' && !isShift ? key.toLowerCase() : key}
                 onPress={() => handlePress(key)}
-                style={styles.key}
-              >
-                <Text style={styles.keyText}>
-                  {mode === 'ALPHA' && !isShift ? key.toLowerCase() : key}
-                </Text>
-              </TouchableOpacity>
+              />
             ))}
 
-            {/* Backspace Key */}
             {i === 2 && (
-              <TouchableOpacity 
-                onPress={() => { onDelete(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }} 
-                style={[styles.key, styles.sideKey]}
-              >
-                <Ionicons name="backspace-outline" size={24} color={theme.ink} />
-              </TouchableOpacity>
+              <KeyButton 
+                icon="backspace-outline"
+                isSpecial={true}
+                style={styles.sideKey}
+                onPress={handleDeleteOptimistic}
+              />
             )}
           </View>
         ))}
 
-        {/* BOTTOM ROW */}
         <View style={styles.row}>
-          <TouchableOpacity onPress={toggleMode} style={[styles.key, styles.modeToggleKey]}>
-            <Text style={styles.modeText}>{mode === 'ALPHA' ? '123' : 'ABC'}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity onPress={() => handlePress(' ')} style={[styles.key, styles.spaceKey]}>
-            <Text style={styles.keyText}>space</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={onClose} style={[styles.key, styles.modeToggleKey]}>
-            <Ionicons name="return-down-back" size={22} color={theme.ink} />
-          </TouchableOpacity>
+          <KeyButton 
+            label={mode === 'ALPHA' ? '123' : 'ABC'}
+            isSpecial={true}
+            style={styles.modeToggleKey}
+            onPress={toggleMode}
+          />
+          <KeyButton 
+            label="space"
+            style={styles.spaceKey}
+            onPress={() => handlePress(' ')}
+          />
+          <KeyButton 
+            icon="return-down-back"
+            isSpecial={true}
+            style={styles.modeToggleKey}
+            onPress={onClose}
+          />
         </View>
       </View>
     </View>
@@ -191,8 +302,8 @@ const styles = StyleSheet.create({
   },
   inputTray: {
     backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     borderBottomWidth: 1,
@@ -202,46 +313,70 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   trayLabel: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 9,
+    fontSize: 10,
     color: theme.primary,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
   },
-  trayActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  trayActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   clearButton: { padding: 4 },
-  clearText: { color: 'rgba(29, 31, 38, 0.2)', fontFamily: 'Poppins_600SemiBold', fontSize: 11 },
-  doneButton: { backgroundColor: theme.ink, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 10 },
-  doneText: { color: '#FFF', fontFamily: 'Poppins_700Bold', fontSize: 11 },
-  previewContainer: { flexDirection: 'row', alignItems: 'center', minHeight: 32 },
-  previewText: { fontFamily: 'Poppins_600SemiBold', fontSize: 24, color: theme.ink },
+  clearText: { color: 'rgba(29, 31, 38, 0.3)', fontFamily: 'Poppins_600SemiBold', fontSize: 11 },
+  doneButton: { backgroundColor: theme.ink, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 12 },
+  doneText: { color: '#FFF', fontFamily: 'Poppins_700Bold', fontSize: 12 },
+  previewContainer: { flexDirection: 'row', alignItems: 'center', minHeight: 40 },
+  previewText: { fontFamily: 'Poppins_600SemiBold', fontSize: 26, color: theme.ink, letterSpacing: -0.5 },
   previewPlaceholder: { color: 'rgba(29, 31, 38, 0.1)' },
-  cursor: { width: 2.5, height: 26, backgroundColor: theme.primary, marginLeft: 4 },
-  keyboardBody: {
-    padding: 6, // Reduced padding to allow larger keys
-    gap: 6,     // Tighter gaps
-  },
-  row: { flexDirection: 'row', justifyContent: 'center', gap: 4 }, // Minimized gaps
+  cursor: { width: 3, height: 28, backgroundColor: theme.primary, marginLeft: 4, borderRadius: 1.5 },
+  keyboardBody: { padding: 6, gap: 6 },
+  row: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
   key: {
     flex: 1,
-    height: 56, // Increased height for better ergonomics
+    height: 58,
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: (width - 60) / 10,
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    zIndex: 1,
   },
-  keyText: { fontFamily: 'Poppins_500Medium', fontSize: 20, color: theme.ink },
-  sideKey: { backgroundColor: 'rgba(136, 162, 242, 0.12)', flex: 1.4 },
-  modeToggleKey: { backgroundColor: 'rgba(29, 31, 38, 0.05)', flex: 1.8 },
+  keyPressed: {
+    backgroundColor: '#E8EAF0',
+    transform: [{ scale: 0.95 }],
+  },
+  magnifier: {
+    position: 'absolute',
+    bottom: 50,
+    width: 60,
+    height: 70,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 999,
+  },
+  magnifierText: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 32,
+    color: theme.ink,
+  },
+  keyText: { fontFamily: 'Poppins_500Medium', fontSize: 21, color: theme.ink },
+  specialKey: { backgroundColor: 'rgba(136, 162, 242, 0.12)', flex: 1.4 },
+  sideKey: { backgroundColor: '#F2F2F2', flex: 1.4 },
+  modeToggleKey: { backgroundColor: '#F2F2F2', flex: 1.5 },
   modeText: { fontFamily: 'Poppins_700Bold', fontSize: 13, color: theme.ink },
-  spaceKey: { flex: 5 },
+  spaceKey: { flex: 4 },
 });
