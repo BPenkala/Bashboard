@@ -1,7 +1,7 @@
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useState } from 'react';
-// Updated to hidden folder path
+// FINAL FIX: Navigate up from context/ to root, then into app/_utils
 import { supabase } from '../app/_utils/supabase';
 
 interface DesignerState {
@@ -13,7 +13,7 @@ interface EventDetails {
   name: string;
   location: string;
   date: Date;
-  time: Date; // Added time property
+  time: Date; 
   type: string;
 }
 

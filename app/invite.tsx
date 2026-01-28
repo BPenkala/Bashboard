@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Updated from deprecated import
+import { SafeAreaView } from 'react-native-safe-area-context';
 import BackgroundPicker from '../components/designer/BackgroundPicker';
 import ChoiceStage from '../components/designer/ChoiceStage';
 import EditorStage from '../components/designer/EditorStage';
@@ -16,8 +16,7 @@ type InviteStep = 'details' | 'choice' | 'templates' | 'upload' | 'editor';
 export default function InviteScreen() {
   const router = useRouter();
   const haptics = useHaptics();
-  // SPC FIX: Extract data from context to pass to forms
-  const { saveInvitation, isSaving, eventDetails, setEventDetails } = useData();
+  const { saveInvitation, isSaving, eventDetails, setEventDetails, designerState, setDesignerState } = useData();
   const [step, setStep] = useState<InviteStep>('details');
 
   const handleFinish = useCallback(async () => {
@@ -36,7 +35,6 @@ export default function InviteScreen() {
   const renderStep = () => {
     switch (step) {
       case 'details':
-        // SPC FIX: Inject required props to prevent 'undefined' crash in EventForm
         return (
           <EventForm 
             eventData={eventDetails} 
@@ -54,13 +52,42 @@ export default function InviteScreen() {
           />
         );
       case 'templates':
-        return <TemplateSelector onNext={() => setStep('editor')} onBack={() => setStep('choice')} />;
+        return (
+          <TemplateSelector 
+            eventData={eventDetails}
+            setDesignState={setDesignerState}
+            onNext={() => setStep('editor')} 
+            onBack={() => setStep('choice')} 
+          />
+        );
       case 'upload':
-        return <BackgroundPicker onNext={() => setStep('editor')} onBack={() => setStep('choice')} />;
+        return (
+          <BackgroundPicker 
+            onImageSelected={(uri) => {
+                setDesignerState((prev) => ({ ...prev, background: uri }));
+                setStep('editor');
+            }} 
+            onBack={() => setStep('choice')} 
+          />
+        );
       case 'editor':
-        return <EditorStage onFinish={handleFinish} onBack={() => setStep('choice')} />;
+        return (
+          <EditorStage 
+            designState={designerState}
+            setDesignState={setDesignerState}
+            onFinish={handleFinish}
+            onBack={() => setStep('choice')} 
+          />
+        );
       default:
-        return <EventForm eventData={eventDetails} setEventData={setEventDetails} onNext={() => setStep('choice')} onBack={() => {}} />;
+        return (
+          <EventForm 
+            eventData={eventDetails} 
+            setEventData={setEventDetails} 
+            onNext={() => setStep('choice')} 
+            onBack={() => router.back()}
+          />
+        );
     }
   };
 

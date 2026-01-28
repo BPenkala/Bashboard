@@ -6,9 +6,16 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../../constants/Colors';
 import { COLOR_PALETTE, FONT_OPTIONS, ROTATION_LIMITS } from '../../constants/DesignerConstants';
 import DraggableText from './DraggableText';
-import ZoomableBackground from './ZoomableBackground'; // New Import
+import ZoomableBackground from './ZoomableBackground';
 
-export default function EditorStage({ designState, setDesignState, onBack }: any) {
+interface EditorStageProps {
+  designState: any;
+  setDesignState: (state: any) => void;
+  onFinish: () => void;
+  onBack: () => void;
+}
+
+export default function EditorStage({ designState, setDesignState, onFinish, onBack }: EditorStageProps) {
   const [activeTab, setActiveTab] = useState<'edit' | 'font' | 'color' | 'style'>('edit');
   const [selectedElement, setSelectedElement] = useState<string>('main');
 
@@ -30,7 +37,6 @@ export default function EditorStage({ designState, setDesignState, onBack }: any
 
   return (
     <View className="flex-1 bg-ink">
-      {/* [HCI] Navigation Affordance: Header with Back Button */}
       <View className="flex-row items-center justify-between px-6 py-4">
         <TouchableOpacity 
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onBack(); }}
@@ -39,12 +45,11 @@ export default function EditorStage({ designState, setDesignState, onBack }: any
           <Ionicons name="arrow-back" size={20} color="white" />
         </TouchableOpacity>
         <Text className="text-white font-poppins-bold uppercase text-[10px] tracking-widest">Designer</Text>
-        <TouchableOpacity className="bg-primary px-4 py-2 rounded-full">
+        <TouchableOpacity onPress={onFinish} className="bg-primary px-4 py-2 rounded-full">
            <Text className="text-white font-poppins-bold text-[10px] uppercase">Finish</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 1. FLOATING CANVAS WITH ZOOM CAPABILITIES */}
       <View className="flex-1 items-center justify-center p-4">
           <View style={{ width: 330, height: 495, borderRadius: 24, overflow: 'hidden', shadowOpacity: 0.3, shadowRadius: 30, backgroundColor: theme.canvas }}>
             <ZoomableBackground source={designState.background}>
@@ -61,7 +66,6 @@ export default function EditorStage({ designState, setDesignState, onBack }: any
           </View>
       </View>
 
-      {/* 2. ADOBE-STYLE CONTEXTUAL BAR */}
       <View style={{ height: 280 }} className="bg-white rounded-t-[40px] px-6 pt-6 shadow-2xl">
         <View className="flex-row justify-between mb-6 px-2">
             {[

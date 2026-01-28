@@ -5,8 +5,8 @@ import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Te
 import BentoCard from '../components/BentoCard';
 import Wordmark from '../components/Wordmark';
 import Colors from '../constants/Colors';
-// Corrected path: index.tsx and utils/ are siblings inside the app/ folder
-import { supabase } from './utils/supabase';
+// SPC FIX: Points to the hidden _utils folder to resolve bundling error
+import { supabase } from './_utils/supabase';
 
 const { width } = Dimensions.get('window');
 
