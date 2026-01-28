@@ -19,6 +19,35 @@ export default function InviteScreen() {
   const { saveInvitation, isSaving, eventDetails, setEventDetails, designerState, setDesignerState } = useData();
   const [step, setStep] = useState<InviteStep>('details');
 
+  // SPC LOGIC: Hydrate the empty canvas with data from the form
+  const hydrateDesign = (backgroundUri?: string) => {
+    setDesignerState((prev: any) => {
+        // If elements already exist (e.g. from a template), just update bg
+        if (Object.keys(prev.elements || {}).length > 0) {
+            return backgroundUri ? { ...prev, background: backgroundUri } : prev;
+        }
+
+        // Otherwise, create default text elements from Event Details
+        return {
+            background: backgroundUri || prev.background,
+            elements: {
+                title: { 
+                    text: eventDetails.name || 'Event Title', 
+                    x: 40, y: 100, 
+                    size: 32, fontFamily: 'Poppins_700Bold', 
+                    color: '#1D1F26', align: 'center', width: 250 
+                },
+                details: { 
+                    text: `${eventDetails.date.toLocaleDateString()} • ${eventDetails.location}`, 
+                    x: 40, y: 160, 
+                    size: 16, fontFamily: 'Poppins_500Medium', 
+                    color: '#1D1F26', align: 'center', width: 250 
+                }
+            }
+        };
+    });
+  };
+
   const handleFinish = useCallback(async () => {
     haptics.notification('success');
     const result = await saveInvitation();
@@ -55,7 +84,12 @@ export default function InviteScreen() {
         return (
           <TemplateSelector 
             eventData={eventDetails}
-            setDesignState={setDesignerState}
+            setDesignState={(newState: any) => {
+                // If template provides state, use it, but potentially merge text?
+                // For now, assume template sets background and we hydrate text if missing
+                setDesignerState(newState);
+                hydrateDesign(); // Ensure text exists
+            }}
             onNext={() => setStep('editor')} 
             onBack={() => setStep('choice')} 
           />
@@ -64,7 +98,7 @@ export default function InviteScreen() {
         return (
           <BackgroundPicker 
             onImageSelected={(uri) => {
-                setDesignerState((prev) => ({ ...prev, background: uri }));
+                hydrateDesign(uri); // Inject text + bg
                 setStep('editor');
             }} 
             onBack={() => setStep('choice')} 

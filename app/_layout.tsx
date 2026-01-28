@@ -1,39 +1,77 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Tabs } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
 
+// SPC FIX: This file must exist at components/BashboardTabBar.tsx
+import BashboardTabBar from '../components/BashboardTabBar';
 import { DataProvider } from '../context/DataContext';
 import { useColorScheme } from '../hooks/use-color-scheme';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
-    // SPC FIX: Removed missing SpaceMono font dependency.
-    // Hiding splash screen immediately since we have no blocking assets.
     SplashScreen.hideAsync();
   }, []);
 
   return (
-    <KeyboardProvider>
-      <DataProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="invite" options={{ headerShown: false }} />
-            <Stack.Screen name="event/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </DataProvider>
-    </KeyboardProvider>
+    // SPC FIX: Root view must be GestureHandlerRootView for gestures to work in Editor
+    <GestureHandlerRootView style={styles.container}>
+      <KeyboardProvider>
+        <DataProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Tabs
+              tabBar={(props) => <BashboardTabBar {...props} />}
+              screenOptions={{
+                headerShown: false,
+              }}
+            >
+              {/* Slot 1: Event Hub */}
+              <Tabs.Screen name="index" options={{ title: 'Home' }} />
+              
+              {/* Slot 2: Planner */}
+              <Tabs.Screen name="kanban" options={{ title: 'Planner' }} />
+              
+              {/* Slot 4: Studio (Mapped to registry for now) */}
+              <Tabs.Screen name="registry" options={{ title: 'Studio' }} />
+              
+              {/* Slot 5: Guest List */}
+              <Tabs.Screen name="guests" options={{ title: 'Guests' }} />
+
+              {/* FULL SCREEN EDITOR: Hidden from tabs */}
+              <Tabs.Screen 
+                name="invite" 
+                options={{ 
+                  href: null, 
+                  tabBarStyle: { display: 'none' } 
+                }} 
+              />
+
+              {/* Utility Screens */}
+              <Tabs.Screen name="event/[id]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+              <Tabs.Screen name="modal" options={{ href: null }} />
+              <Tabs.Screen name="profile" options={{ href: null }} />
+              <Tabs.Screen name="rsvp" options={{ href: null }} />
+              <Tabs.Screen name="+not-found" options={{ href: null }} />
+            </Tabs>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </DataProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

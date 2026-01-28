@@ -12,8 +12,8 @@ interface ChoiceStageProps {
 export default function ChoiceStage({ onSelectTemplate, onSelectUpload, onBack }: ChoiceStageProps) {
   return (
     <View className="flex-1 px-6 justify-center bg-canvas">
-      {/* Navigation Header */}
-      <View className="absolute top-4 left-6">
+      {/* SPC FIX: Added zIndex to ensure back button is clickable above other content */}
+      <View className="absolute top-4 left-6" style={{ zIndex: 50 }}>
         <TouchableOpacity onPress={onBack} className="w-10 h-10 bg-ink/5 rounded-full items-center justify-center">
           <Ionicons name="arrow-back" size={20} color={theme.ink} />
         </TouchableOpacity>

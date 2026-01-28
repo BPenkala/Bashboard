@@ -2,19 +2,24 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
-    Dimensions,
     Keyboard,
-    KeyboardAvoidingView,
     Platform,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
+// SPC FIX: Corrected import source for keyboard handler
+import { useKeyboardHandler } from 'react-native-keyboard-controller';
+import Animated, {
+    Easing,
+    SlideInDown,
+    SlideOutDown,
+    useAnimatedStyle,
+    useSharedValue
+} from 'react-native-reanimated';
 import { theme } from '../../constants/Colors';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface NativeInputTrayProps {
   label: string;
@@ -38,12 +43,32 @@ export default function NativeInputTray({
   textContentType = 'none',
 }: NativeInputTrayProps) {
   const inputRef = useRef<TextInput>(null);
+  const keyboardHeight = useSharedValue(0);
+
+  // SPC PERFORMANCE: Lock movement to UI thread for zero-jitter
+  useKeyboardHandler({
+    onMove: (e) => {
+      'worklet';
+      keyboardHeight.value = e.height;
+    },
+    onEnd: (e) => {
+      'worklet';
+      keyboardHeight.value = e.height;
+    },
+  });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      // Moves in exact sync with keyboard height
+      transform: [{ translateY: -keyboardHeight.value + 60 }],
+    };
+  });
 
   useEffect(() => {
-    // Focus with a slight delay to ensure the OS recognizes the transition
+    // Focus timing calibrated for the 250ms crisp entry
     const timer = setTimeout(() => {
       inputRef.current?.focus();
-    }, 100);
+    }, 200); 
     return () => clearTimeout(timer);
   }, []);
 
@@ -54,30 +79,23 @@ export default function NativeInputTray({
   };
 
   return (
-    <KeyboardAvoidingView
-      // SPC FIX: behavior='padding' is most reliable for iOS when inside a root overlay.
-      // On Android, the OS handles this via windowSoftInputMode, so we leave it undefined.
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      // This offset ensures the tray doesn't get pushed too far up or covered.
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      style={styles.keyboardAvoid}
-    >
-      <View style={styles.container}>
-        {/* TOP AFFORDANCE: Drag-like bar */}
+    <View style={styles.outerContainer}>
+      <Animated.View 
+        style={[styles.container, animatedStyle]}
+        // Crisp, subtle entry without spring/bounce
+        entering={SlideInDown.duration(250).easing(Easing.out(Easing.quad))}
+        exiting={SlideOutDown.duration(200)}
+      >
         <View style={styles.dragBar} />
 
-        {/* HEADER */}
         <View style={styles.header}>
-          <View style={styles.labelGroup}>
-            <Text style={styles.label}>{label}</Text>
-          </View>
+          <Text style={styles.label}>{label}</Text>
           <TouchableOpacity onPress={handleDone} style={styles.doneButton} activeOpacity={0.7}>
-            <Text style={styles.doneText}>Commit</Text>
+            <Text style={styles.doneText}>Save</Text>
             <Ionicons name="checkmark" size={16} color="#FFF" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
         </View>
 
-        {/* INPUT AREA */}
         <View style={styles.inputContainer}>
           <TextInput
             ref={inputRef}
@@ -87,13 +105,11 @@ export default function NativeInputTray({
             placeholder={placeholder}
             placeholderTextColor="rgba(29, 31, 38, 0.2)"
             multiline={false}
-            
-            // SYSTEM INTELLIGENCE
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
             autoCorrect={true}
             spellCheck={true}
             textContentType={textContentType}
+            autoCapitalize={autoCapitalize}
+            keyboardType={keyboardType}
             returnKeyType="done"
             onSubmitEditing={handleDone}
             enablesReturnKeyAutomatically={true}
@@ -101,10 +117,7 @@ export default function NativeInputTray({
           
           {value.length > 0 && (
             <TouchableOpacity 
-              onPress={() => {
-                onChangeText('');
-                Haptics.selectionAsync();
-              }} 
+              onPress={() => { onChangeText(''); Haptics.selectionAsync(); }} 
               style={styles.clearButton}
             >
               <Ionicons name="close-circle" size={22} color="rgba(29, 31, 38, 0.15)" />
@@ -112,38 +125,41 @@ export default function NativeInputTray({
           )}
         </View>
 
-        {/* FOOTER SPACING: Prevents the text from touching the keyboard accessory bar */}
-        <View style={styles.footerSpacing} />
-      </View>
-    </KeyboardAvoidingView>
+        {/* HIGH-CLEARANCE BUFFER: Pushes the input ABOVE the QuickType/Accessory bar */}
+        <View style={styles.bottomBuffer} />
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoid: {
-    flex: 1,
-    justifyContent: 'flex-end',
+  outerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
   container: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
     paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 30, 
+    paddingTop: 16,
+    paddingBottom: 20, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 30,
+    shadowRadius: 25,
+    elevation: 35,
   },
   dragBar: {
-    width: 40,
-    height: 5,
+    width: 36,
+    height: 4,
     backgroundColor: 'rgba(29, 31, 38, 0.05)',
-    borderRadius: 2.5,
+    borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   header: {
     flexDirection: 'row',
@@ -151,12 +167,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  labelGroup: {
-    flexDirection: 'column',
-  },
   label: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 10,
+    fontSize: 14,
     color: theme.primary,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -169,32 +182,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 14,
   },
-  doneText: {
-    color: '#FFF',
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 13,
-  },
+  doneText: { color: '#FFF', fontFamily: 'Poppins_700Bold', fontSize: 13 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.canvas,
     borderRadius: 20,
     paddingHorizontal: 20,
-    height: 68, // Increased height for better visual clarity
+    height: 54,
     borderWidth: 1,
-    borderColor: 'rgba(29, 31, 38, 0.03)',
+    borderColor: 'rgba(29, 31, 38, 0.02)',
   },
   input: {
     flex: 1,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 22, // Larger text for the "Preview" feel
+    fontSize: 16,
     color: theme.ink,
     height: '100%',
   },
-  clearButton: {
-    marginLeft: 10,
-  },
-  footerSpacing: {
-    height: 10, // Explicit gap between input and keyboard
+  clearButton: { marginLeft: 10 },
+  bottomBuffer: {
+    // Ensures the input clears the native accessory bar height (QuickType)
+    height: Platform.OS === 'ios' ? 50 : 10, 
   }
 });

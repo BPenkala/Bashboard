@@ -1,45 +1,38 @@
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
-import { theme } from '../constants/Colors';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-const AnimatedLetter = ({ letter, index, size, color, font }: any) => {
-  const scale = useSharedValue(0);
-  const opacity = useSharedValue(0);
+interface WordmarkProps {
+  color?: string;
+  size?: number;
+}
 
-  useEffect(() => {
-    scale.value = withDelay(index * 50, withSpring(1, { damping: 8, stiffness: 120 }));
-    opacity.value = withDelay(index * 50, withSpring(1));
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
+export default function Wordmark({ color = '#1D1F26', size = 24 }: WordmarkProps) {
   return (
-    <Animated.Text style={[style, { fontFamily: font, fontSize: size, color: color, letterSpacing: -1 }]}>
-      {letter}
-    </Animated.Text>
-  );
-};
-
-export default function Wordmark({ size = 24 }: { size?: number }) {
-  const bash = "BASH".split("");
-  const board = "board".split("");
-
-  return (
-    <View className="flex-row items-baseline">
-      <View className="flex-row">
-        {bash.map((l, i) => (
-          <AnimatedLetter key={`bash-${i}`} letter={l} index={i} size={size} color={theme.ink} font="Poppins_900Black" />
-        ))}
-      </View>
-      <View className="flex-row ml-1">
-        {board.map((l, i) => (
-          <AnimatedLetter key={`board-${i}`} letter={l} index={i + 4} size={size * 0.95} color={theme.primary} font="Poppins_400Regular" />
-        ))}
-      </View>
+    <View style={styles.container}>
+      <Text style={[styles.text, { color, fontSize: size }]}>
+        bash
+        <Text style={styles.bold}>board</Text>
+      </Text>
+      <View style={[styles.dot, { backgroundColor: color, width: size / 6, height: size / 6 }]} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  text: {
+    // SPC FIX: Explicitly calling the Poppins weight loaded in _layout.tsx
+    fontFamily: 'Poppins_400Regular',
+    letterSpacing: -0.5,
+  },
+  bold: {
+    fontFamily: 'Poppins_700Bold',
+  },
+  dot: {
+    marginLeft: 2,
+    borderRadius: 99,
+  },
+});
