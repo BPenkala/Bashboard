@@ -5,6 +5,7 @@ import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Te
 import BentoCard from '../components/BentoCard';
 import Wordmark from '../components/Wordmark';
 import Colors from '../constants/Colors';
+// HOLISTIC FIX: Pointing to root utils
 import { supabase } from '../utils/supabase';
 
 const { width } = Dimensions.get('window');

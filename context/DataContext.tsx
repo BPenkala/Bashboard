@@ -1,6 +1,7 @@
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useState } from 'react';
+// HOLISTIC FIX: Root utils path
 import { supabase } from '../utils/supabase';
 
 interface DesignerState { backgroundUri: string | null; textElements: any[]; }
@@ -37,6 +38,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         date: eventDetails.date.toISOString(), event_type: eventDetails.type,
         background_url: finalUrl, design_state: designerState.textElements,
       });
+
       if (error) throw error;
       return { success: true };
     } catch (error: any) { return { success: false, error: error.message }; } finally { setIsSaving(false); }
