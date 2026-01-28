@@ -13,116 +13,32 @@ export default function EventForm({ eventData, setEventData, onNext, onBack }: a
 
   const handleKeyPress = (char: string) => {
     if (!activeField) return;
-    const currentVal = eventData[activeField] || '';
-    setEventData({ ...eventData, [activeField]: currentVal + char });
+    setEventData({ ...eventData, [activeField]: (eventData[activeField] || '') + char });
   };
 
   const handleDelete = () => {
     if (!activeField) return;
-    const currentVal = eventData[activeField] || '';
-    setEventData({ ...eventData, [activeField]: currentVal.slice(0, -1) });
+    setEventData({ ...eventData, [activeField]: (eventData[activeField] || '').slice(0, -1) });
   };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Navigation Header */}
-      <View style={styles.navHeader}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={theme.ink} />
-        </TouchableOpacity>
-      </View>
-
+      <View style={styles.navHeader}><TouchableOpacity onPress={onBack} style={styles.backButton}><Ionicons name="arrow-back" size={20} color={theme.ink} /></TouchableOpacity></View>
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Event Details</Text>
-          <Text style={styles.subtitle}>Tell us about your celebration</Text>
-        </View>
-
+        <View style={styles.header}><Text style={styles.title}>Event Details</Text><Text style={styles.subtitle}>Tell us about your celebration</Text></View>
         <View style={styles.formContent}>
-          <View>
-            <Text style={styles.label}>Event Type</Text>
-            <View style={styles.typesGrid}>
-              {EVENT_TYPES.map((type: string) => (
-                <TouchableOpacity 
-                  key={type} 
-                  onPress={() => setEventData({ ...eventData, type })}
-                  style={[styles.typeBadge, eventData.type === type && styles.typeBadgeActive]}
-                >
-                  <Text style={[styles.typeText, eventData.type === type && styles.typeTextActive]}>{type}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View>
-            <Text style={styles.label}>Event Name</Text>
-            <TouchableOpacity 
-              activeOpacity={0.7}
-              onPress={() => setActiveField('name')}
-              style={[styles.inputBox, activeField === 'name' && styles.inputBoxActive]}
-            >
-              <Text style={[styles.inputValue, !eventData.name && styles.placeholder]}>
-                {eventData.name || "Sarah's 30th Birthday"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View>
-            <Text style={styles.label}>Location</Text>
-            <TouchableOpacity 
-              activeOpacity={0.7}
-              onPress={() => setActiveField('location')}
-              style={[styles.inputBox, activeField === 'location' && styles.inputBoxActive]}
-            >
-              <Text style={[styles.inputValue, !eventData.location && styles.placeholder]}>
-                {eventData.location || "The Rooftop Lounge"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
+          <View><Text style={styles.label}>Event Type</Text><View style={styles.typesGrid}>{EVENT_TYPES.map((type: string) => (<TouchableOpacity key={type} onPress={() => setEventData({ ...eventData, type })} style={[styles.typeBadge, eventData.type === type && styles.typeBadgeActive]}><Text style={[styles.typeText, eventData.type === type && styles.typeTextActive]}>{type}</Text></TouchableOpacity>))}</View></View>
+          <View><Text style={styles.label}>Event Name</Text><TouchableOpacity onPress={() => setActiveField('name')} style={[styles.inputBox, activeField === 'name' && styles.inputBoxActive]}><Text style={[styles.inputValue, !eventData.name && styles.placeholder]}>{eventData.name || "Sarah's 30th Birthday"}</Text></TouchableOpacity></View>
+          <View><Text style={styles.label}>Location</Text><TouchableOpacity onPress={() => setActiveField('location')} style={[styles.inputBox, activeField === 'location' && styles.inputBoxActive]}><Text style={[styles.inputValue, !eventData.location && styles.placeholder]}>{eventData.location || "The Rooftop Lounge"}</Text></TouchableOpacity></View>
           <View style={styles.dateTimeRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Date</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.inputBox}>
-                <Text style={styles.inputValue}>{eventData.date.toLocaleDateString()}</Text>
-              </TouchableOpacity>
-              {showDatePicker && <DateTimePicker value={eventData.date} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if (d) setEventData({ ...eventData, date: d }); }} />}
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Time</Text>
-              <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.inputBox}>
-                <Text style={styles.inputValue}>{eventData.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text>
-              </TouchableOpacity>
-              {showTimePicker && <DateTimePicker value={eventData.time} mode="time" display="default" onChange={(e, d) => { setShowTimePicker(false); if (d) setEventData({ ...eventData, time: d }); }} />}
-            </View>
+            <View style={{ flex: 1 }}><Text style={styles.label}>Date</Text><TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.inputBox}><Text style={styles.inputValue}>{eventData.date.toLocaleDateString()}</Text></TouchableOpacity>{showDatePicker && <DateTimePicker value={eventData.date} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if (d) setEventData({ ...eventData, date: d }); }} />}</View>
+            <View style={{ flex: 1 }}><Text style={styles.label}>Time</Text><TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.inputBox}><Text style={styles.inputValue}>{eventData.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></TouchableOpacity>{showTimePicker && <DateTimePicker value={eventData.time} mode="time" display="default" onChange={(e, d) => { setShowTimePicker(false); if (d) setEventData({ ...eventData, time: d }); }} />}</View>
           </View>
-
-          <TouchableOpacity 
-            onPress={onNext} 
-            disabled={!eventData.name || !eventData.location} 
-            style={[styles.nextButton, (!eventData.name || !eventData.location) && styles.nextButtonDisabled]}
-          >
-            <Text style={[styles.nextButtonText, (!eventData.name || !eventData.location) && styles.nextButtonTextDisabled]}>Next</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={onNext} disabled={!eventData.name || !eventData.location} style={[styles.nextButton, (!eventData.name || !eventData.location) && styles.nextButtonDisabled]}><Text style={[styles.nextButtonText, (!eventData.name || !eventData.location) && styles.nextButtonTextDisabled]}>Next</Text></TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* CUSTOM BENTO KEYBOARD MODAL */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={activeField !== null}
-        onRequestClose={() => setActiveField(null)}
-      >
-        <View style={styles.modalOverlay}>
-            <TouchableOpacity style={{ flex: 1 }} onPress={() => setActiveField(null)} />
-            <BentoKeyboard 
-              onKeyPress={handleKeyPress} 
-              onDelete={handleDelete}
-              onClose={() => setActiveField(null)}
-            />
-        </View>
+      <Modal animationType="slide" transparent={true} visible={activeField !== null} onRequestClose={() => setActiveField(null)}>
+        <View style={styles.modalOverlay}><TouchableOpacity style={{ flex: 1 }} onPress={() => setActiveField(null)} /><BentoKeyboard onKeyPress={handleKeyPress} onDelete={handleDelete} onClose={() => setActiveField(null)} /></View>
       </Modal>
     </View>
   );
@@ -148,8 +64,8 @@ const styles = StyleSheet.create({
   inputValue: { fontSize: 14, fontFamily: 'Poppins_500Medium', color: theme.ink },
   placeholder: { color: 'rgba(29, 31, 38, 0.2)' },
   dateTimeRow: { flexDirection: 'row', gap: 16 },
-  nextButton: { padding: 20, borderRadius: 24, alignItems: 'center', backgroundColor: theme.primary, shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5, marginTop: 16 },
-  nextButtonDisabled: { backgroundColor: 'rgba(29, 31, 38, 0.1)', shadowOpacity: 0 },
+  nextButton: { padding: 20, borderRadius: 24, alignItems: 'center', backgroundColor: theme.primary, elevation: 5, marginTop: 16 },
+  nextButtonDisabled: { backgroundColor: 'rgba(29, 31, 38, 0.1)' },
   nextButtonText: { fontFamily: 'Poppins_700Bold', textTransform: 'uppercase', letterSpacing: 1, color: '#FFF' },
   nextButtonTextDisabled: { color: 'rgba(29, 31, 38, 0.2)' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'flex-end' }

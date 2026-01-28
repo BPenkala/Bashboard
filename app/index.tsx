@@ -5,8 +5,7 @@ import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Te
 import BentoCard from '../components/BentoCard';
 import Wordmark from '../components/Wordmark';
 import Colors from '../constants/Colors';
-// SPC FIX: Points to the hidden _utils folder to resolve bundling error
-import { supabase } from './_utils/supabase';
+import { supabase } from '../utils/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -44,14 +43,7 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchEvents();
-  };
+  useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
   const renderItem = ({ item, index }: { item: EventRecord; index: number }) => {
     const isFullWidth = index % 3 === 0;
@@ -88,30 +80,19 @@ export default function DashboardScreen() {
           numColumns={2}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.row}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchEvents} tintColor={Colors.light.primary} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="calendar-outline" size={40} color={Colors.light.primary} />
-              </View>
+              <View style={styles.emptyIconCircle}><Ionicons name="calendar-outline" size={40} color={Colors.light.primary} /></View>
               <Text style={styles.emptyTitle}>No events found</Text>
-              <TouchableOpacity 
-                style={styles.createButton} 
-                onPress={() => router.push('/invite')}
-              >
+              <TouchableOpacity style={styles.createButton} onPress={() => router.push('/invite')}>
                 <Text style={styles.createButtonText}>Create Invitation</Text>
               </TouchableOpacity>
             </View>
           }
         />
       )}
-
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={() => router.push('/invite')}
-      >
+      <TouchableOpacity style={styles.fab} onPress={() => router.push('/invite')}>
         <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
     </View>
@@ -120,44 +101,16 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F2' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFF',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    zIndex: 10,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#FFF', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   listContent: { padding: 12, paddingBottom: 120 },
   row: { justifyContent: 'flex-start' },
   fullWidthWrapper: { width: '100%', padding: 6 },
   halfWidthWrapper: { width: '50%', padding: 6 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { marginTop: 80, alignItems: 'center' },
-  emptyIconCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#FFF', justifyContent: 'center',
-    alignItems: 'center', marginBottom: 20,
-  },
+  emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#1D1F26' },
-  createButton: {
-    backgroundColor: '#88A2F2', paddingHorizontal: 32,
-    paddingVertical: 16, borderRadius: 20, marginTop: 24,
-  },
+  createButton: { backgroundColor: '#88A2F2', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 20, marginTop: 24 },
   createButtonText: { color: '#FFF', fontWeight: '700' },
-  fab: {
-    position: 'absolute', bottom: 40, alignSelf: 'center',
-    width: 70, height: 70, borderRadius: 35,
-    backgroundColor: '#88A2F2', justifyContent: 'center',
-    alignItems: 'center', elevation: 8,
-  },
+  fab: { position: 'absolute', bottom: 40, alignSelf: 'center', width: 70, height: 70, borderRadius: 35, backgroundColor: '#88A2F2', justifyContent: 'center', alignItems: 'center', elevation: 8 },
 });

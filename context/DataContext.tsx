@@ -1,101 +1,48 @@
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useState } from 'react';
-// FINAL FIX: Navigate up from context/ to root, then into app/_utils
-import { supabase } from '../app/_utils/supabase';
+import { supabase } from '../utils/supabase';
 
-interface DesignerState {
-  backgroundUri: string | null;
-  textElements: any[];
-}
+interface DesignerState { backgroundUri: string | null; textElements: any[]; }
+interface EventDetails { name: string; location: string; date: Date; time: Date; type: string; }
 
-interface EventDetails {
-  name: string;
-  location: string;
-  date: Date;
-  time: Date; 
-  type: string;
-}
-
-interface DataContextType {
-  eventDetails: EventDetails;
-  setEventDetails: (details: EventDetails) => void;
-  designerState: DesignerState;
-  setDesignerState: (state: DesignerState) => void;
-  saveInvitation: () => Promise<{ success: boolean; error?: string }>;
-  isSaving: boolean;
-}
-
-const DataContext = createContext<DataContextType | undefined>(undefined);
+const DataContext = createContext<any>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [eventDetails, setEventDetails] = useState<EventDetails>({
-    name: '',
-    location: '',
-    date: new Date(),
-    time: new Date(),
-    type: 'Party',
+  const [eventDetails, setEventDetails] = useState<EventDetails>({ 
+    name: '', location: '', date: new Date(), time: new Date(), type: 'Party' 
   });
-
-  const [designerState, setDesignerState] = useState<DesignerState>({
-    backgroundUri: null,
-    textElements: [],
+  const [designerState, setDesignerState] = useState<DesignerState>({ 
+    backgroundUri: null, textElements: [] 
   });
 
   const saveInvitation = async () => {
     setIsSaving(true);
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) throw new Error("Please log in to save your invitation.");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Please log in to save your invitation.");
 
-      let finalBackgroundUrl = designerState.backgroundUri;
-
-      if (designerState.backgroundUri && (designerState.backgroundUri.startsWith('file') || designerState.backgroundUri.startsWith('content'))) {
+      let finalUrl = designerState.backgroundUri;
+      if (designerState.backgroundUri?.startsWith('file')) {
         const fileExt = designerState.backgroundUri.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         const base64 = await FileSystem.readAsStringAsync(designerState.backgroundUri, { encoding: FileSystem.EncodingType.Base64 });
-        
-        const { error: uploadError } = await supabase.storage
-          .from('invitations')
-          .upload(fileName, decode(base64), { 
-            contentType: `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
-            upsert: true 
-          });
-
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('invitations').getPublicUrl(fileName);
-        finalBackgroundUrl = urlData.publicUrl;
+        await supabase.storage.from('invitations').upload(fileName, decode(base64), { contentType: `image/${fileExt}` });
+        finalUrl = supabase.storage.from('invitations').getPublicUrl(fileName).data.publicUrl;
       }
 
-      const { error: dbError } = await supabase.from('events').insert({
-        user_id: user.id,
-        name: eventDetails.name,
-        location: eventDetails.location,
-        date: eventDetails.date.toISOString(),
-        event_type: eventDetails.type,
-        background_url: finalBackgroundUrl,
-        design_state: designerState.textElements,
+      const { error } = await supabase.from('events').insert({
+        user_id: user.id, name: eventDetails.name, location: eventDetails.location,
+        date: eventDetails.date.toISOString(), event_type: eventDetails.type,
+        background_url: finalUrl, design_state: designerState.textElements,
       });
-
-      if (dbError) throw dbError;
+      if (error) throw error;
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (error: any) { return { success: false, error: error.message }; } finally { setIsSaving(false); }
   };
 
-  return (
-    <DataContext.Provider value={{ eventDetails, setEventDetails, designerState, setDesignerState, saveInvitation, isSaving }}>
-      {children}
-    </DataContext.Provider>
-  );
+  return <DataContext.Provider value={{ eventDetails, setEventDetails, designerState, setDesignerState, saveInvitation, isSaving }}>{children}</DataContext.Provider>;
 };
 
-export const useData = () => {
-  const context = useContext(DataContext);
-  if (context === undefined) throw new Error('useData must be used within a DataProvider');
-  return context;
-};
+export const useData = () => useContext(DataContext);
