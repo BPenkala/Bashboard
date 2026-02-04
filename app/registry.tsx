@@ -1,13 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/Colors';
 
-export default function Registry() {
+export default function Studio() {
   const router = useRouter();
-  const [items] = useState([{ id: '1', name: 'Leica M11', store: 'Heritage Camera' }]);
+  // Mock data for saved designs
+  const [drafts] = useState([
+    { id: '1', name: "Sarah's 30th", date: 'Edited 2h ago', status: 'Draft' },
+    { id: '2', name: 'Summer BBQ', date: 'Sent', status: 'Live' }
+  ]);
 
   return (
     <View className="flex-1 bg-canvas">
@@ -18,41 +22,43 @@ export default function Registry() {
             <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-ink rounded-full items-center justify-center shadow-sm">
               <Ionicons name="chevron-back" size={24} color="white" />
             </TouchableOpacity>
-            <Text className="text-ink text-xl font-poppins-bold">Gift Registry</Text>
+            <Text className="text-ink text-xl font-poppins-bold">The Studio</Text>
             <View className="w-10" />
           </View>
 
-          <View className="bg-secondary p-8 rounded-bento mb-8 border border-secondary/20">
-             <Text className="text-ink text-[10px] font-poppins-bold uppercase mb-4 tracking-widest">Contribute to Collection</Text>
-             <View className="flex-row gap-2">
-               <TextInput 
-                  placeholder="Paste URL or Item name..." 
-                  placeholderTextColor="#1D1F2666"
-                  className="flex-1 bg-surface p-4 rounded-inner font-poppins-reg text-ink" 
-               />
-               <TouchableOpacity className="w-14 bg-ink rounded-inner items-center justify-center">
-                  <Ionicons name="add" size={28} color="white" />
-               </TouchableOpacity>
+          <View className="bg-primary/10 p-8 rounded-bento mb-8 border border-primary/20 items-center">
+             <View className="w-16 h-16 bg-primary rounded-2xl items-center justify-center mb-4">
+                <Ionicons name="color-palette" size={32} color="white" />
              </View>
+             <Text className="text-ink text-lg font-poppins-bold mb-1">Create New Design</Text>
+             <Text className="text-ink/60 text-xs text-center mb-4">Start from a blank canvas or choose a template.</Text>
+             <TouchableOpacity 
+                onPress={() => router.push('/invite')}
+                className="bg-ink px-6 py-3 rounded-xl"
+             >
+                <Text className="text-white font-poppins-bold text-xs uppercase tracking-widest">Open Designer</Text>
+             </TouchableOpacity>
           </View>
 
+          <Text className="text-ink text-[10px] font-poppins-bold uppercase mb-4 tracking-widest">Your Drafts</Text>
+
           <FlatList 
-            data={items}
+            data={drafts}
             keyExtractor={item => item.id}
             renderItem={({ item }) => (
               <View className="bg-surface mb-4 p-6 rounded-bento flex-row items-center justify-between border border-ink/5 shadow-sm">
                 <View className="flex-row items-center gap-4">
-                  <View className="w-12 h-12 bg-accent/20 rounded-full items-center justify-center">
-                    <Ionicons name="camera" size={22} color={theme.ink} />
+                  <View className="w-12 h-12 bg-ink/5 rounded-full items-center justify-center">
+                    <Ionicons name="document-text-outline" size={22} color={theme.ink} />
                   </View>
                   <View>
                     <Text className="text-ink font-poppins-bold text-lg">{item.name}</Text>
-                    <Text className="text-primary text-[10px] font-poppins-black uppercase">{item.store}</Text>
+                    <Text className="text-ink/40 text-[10px] font-poppins-bold uppercase">{item.date}</Text>
                   </View>
                 </View>
-                <TouchableOpacity className="w-10 h-10 items-center justify-center">
-                    <Ionicons name="open-outline" size={20} color={theme.primary} />
-                </TouchableOpacity>
+                <View className="bg-secondary/30 px-3 py-1 rounded-lg">
+                    <Text className="text-ink text-[10px] font-poppins-bold uppercase">{item.status}</Text>
+                </View>
               </View>
             )}
           />

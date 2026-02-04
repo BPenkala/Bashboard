@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Tabs } from 'expo-router';
+import { Tabs } from 'expo-router'; // SPC FIX: Using Tabs instead of Stack
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
 
-// SPC FIX: This file must exist at components/BashboardTabBar.tsx
+// SPC FIX: Ensure this path resolves to the file created above
 import BashboardTabBar from '../components/BashboardTabBar';
 import { DataProvider } from '../context/DataContext';
 import { useColorScheme } from '../hooks/use-color-scheme';
@@ -23,7 +23,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    // SPC FIX: Root view must be GestureHandlerRootView for gestures to work in Editor
+    // SPC FIX: Root gesture handler needed for Editor pan/pinch
     <GestureHandlerRootView style={styles.container}>
       <KeyboardProvider>
         <DataProvider>
@@ -40,13 +40,13 @@ export default function RootLayout() {
               {/* Slot 2: Planner */}
               <Tabs.Screen name="kanban" options={{ title: 'Planner' }} />
               
-              {/* Slot 4: Studio (Mapped to registry for now) */}
+              {/* Slot 4: Studio (Mapped to registry) */}
               <Tabs.Screen name="registry" options={{ title: 'Studio' }} />
               
               {/* Slot 5: Guest List */}
               <Tabs.Screen name="guests" options={{ title: 'Guests' }} />
 
-              {/* FULL SCREEN EDITOR: Hidden from tabs */}
+              {/* EDITOR: Hidden from tabs to allow full screen */}
               <Tabs.Screen 
                 name="invite" 
                 options={{ 
@@ -55,7 +55,7 @@ export default function RootLayout() {
                 }} 
               />
 
-              {/* Utility Screens */}
+              {/* UTILITY: Hidden Routes */}
               <Tabs.Screen name="event/[id]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
               <Tabs.Screen name="modal" options={{ href: null }} />
               <Tabs.Screen name="profile" options={{ href: null }} />

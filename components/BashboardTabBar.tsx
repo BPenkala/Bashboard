@@ -13,12 +13,12 @@ export default function BashboardTabBar({ state, descriptors, navigation }: Bott
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Filter routes to map to our 5 slots
-  // Slot 1: Home (index)
-  // Slot 2: Planner (kanban)
-  // Slot 3: ACTION HUB (Virtual)
-  // Slot 4: Studio (registry)
-  // Slot 5: Guests (guests)
+  // MAPPING: We filter the active routes to ensure they match our 5 visual slots.
+  // Slot 1: index (Home)
+  // Slot 2: kanban (Planner)
+  // Slot 3: Virtual Action Button (No route, opens modal)
+  // Slot 4: registry (Studio)
+  // Slot 5: guests (Guest List)
   const relevantRoutes = state.routes.filter(route => 
     ['index', 'kanban', 'registry', 'guests'].includes(route.name)
   );
@@ -31,9 +31,10 @@ export default function BashboardTabBar({ state, descriptors, navigation }: Bott
   const handleAction = (action: string) => {
     setMenuVisible(false);
     if (action === 'design') {
+      // Navigates to the Full-Screen Editor
       router.push('/invite');
     }
-    // Add 'event' logic here in future
+    // Future: Add 'event' creation logic here
   };
 
   return (
@@ -68,7 +69,7 @@ export default function BashboardTabBar({ state, descriptors, navigation }: Bott
           </TouchableOpacity>
         </View>
 
-        {/* SLOT 4: STUDIO */}
+        {/* SLOT 4: STUDIO (Mapped to Registry route) */}
         <TabIcon 
           route={relevantRoutes.find(r => r.name === 'registry')} 
           isActive={state.index === state.routes.findIndex(r => r.name === 'registry')}
@@ -127,6 +128,7 @@ export default function BashboardTabBar({ state, descriptors, navigation }: Bott
   );
 }
 
+// Sub-component for individual tab icons
 const TabIcon = ({ route, isActive, icon, activeIcon, navigation }: any) => {
   if (!route) return <View style={styles.tabSlot} />;
 
