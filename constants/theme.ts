@@ -4,17 +4,18 @@
  */
 
 import { Platform } from 'react-native';
+import { theme as AppTheme } from '@/constants/Colors';
 
-const tintColorLight = '#0a7ea4';
+const tintColorLight = AppTheme.primary;
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: AppTheme.ink,
+    background: AppTheme.canvas,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: AppTheme.inkMuted,
+    tabIconDefault: AppTheme.inkMuted,
     tabIconSelected: tintColorLight,
   },
   dark: {

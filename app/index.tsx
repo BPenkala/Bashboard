@@ -1,14 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import BentoCard from '../components/BentoCard';
 import Wordmark from '../components/Wordmark';
-import Colors from '../constants/Colors';
-// HOLISTIC FIX: Pointing to root utils
+import { theme } from '../constants/Colors';
 import { supabase } from '../utils/supabase';
-
-const { width } = Dimensions.get('window');
 
 interface EventRecord {
   id: string;
@@ -55,6 +52,7 @@ export default function DashboardScreen() {
           subtitle={item.date ? new Date(item.date).toLocaleDateString() : 'Upcoming'}
           imageUri={item.background_url || 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1000&auto=format&fit=crop'}
           onPress={() => router.push(`/event/${item.id}`)}
+          style={{ height: 192 }}
         />
       </View>
     );
@@ -63,15 +61,15 @@ export default function DashboardScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Wordmark color={Colors.light.primary} size={28} />
+        <Wordmark color={theme.primary} size={28} />
         <TouchableOpacity onPress={() => router.push('/profile')}>
-          <Ionicons name="person-circle-outline" size={32} color={Colors.light.text} />
+          <Ionicons name="person-circle-outline" size={32} color={theme.ink} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.light.primary} />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : (
         <FlatList
@@ -79,21 +77,29 @@ export default function DashboardScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={2}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.row}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchEvents} tintColor={Colors.light.primary} />}
+          contentContainerStyle={{ padding: 12, paddingBottom: 120 }}
+          columnWrapperStyle={{ justifyContent: 'flex-start' }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchEvents} tintColor={theme.primary} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}><Ionicons name="calendar-outline" size={40} color={Colors.light.primary} /></View>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="calendar-outline" size={40} color={theme.primary} />
+              </View>
               <Text style={styles.emptyTitle}>No events found</Text>
-              <TouchableOpacity style={styles.createButton} onPress={() => router.push('/invite')}>
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={() => router.push('/invite')}
+              >
                 <Text style={styles.createButtonText}>Create Invitation</Text>
               </TouchableOpacity>
             </View>
           }
         />
       )}
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/invite')}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/invite')}
+      >
         <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
     </View>
@@ -101,17 +107,93 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F2' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#FFF', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
-  listContent: { padding: 12, paddingBottom: 120 },
-  row: { justifyContent: 'flex-start' },
-  fullWidthWrapper: { width: '100%', padding: 6 },
-  halfWidthWrapper: { width: '50%', padding: 6 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { marginTop: 80, alignItems: 'center' },
-  emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#1D1F26' },
-  createButton: { backgroundColor: '#88A2F2', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 20, marginTop: 24 },
-  createButtonText: { color: '#FFF', fontWeight: '700' },
-  fab: { position: 'absolute', bottom: 40, alignSelf: 'center', width: 70, height: 70, borderRadius: 35, backgroundColor: '#88A2F2', justifyContent: 'center', alignItems: 'center', elevation: 8 },
+  container: {
+    flex: 1,
+    backgroundColor: theme.canvas,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: theme.surface,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullWidthWrapper: {
+    width: '100%',
+    padding: 6,
+  },
+  halfWidthWrapper: {
+    width: '50%',
+    padding: 6,
+  },
+  emptyContainer: {
+    marginTop: 80,
+    alignItems: 'center',
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins_700Bold',
+    color: theme.ink,
+    marginBottom: 24,
+  },
+  createButton: {
+    backgroundColor: theme.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  createButtonText: {
+    color: 'white',
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 16,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: theme.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
 });
