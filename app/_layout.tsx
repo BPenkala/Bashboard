@@ -7,6 +7,14 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_900Black
+} from '@expo-google-fonts/poppins';
 
 // SPC FIX: Ensure this path resolves to the file created above
 import BashboardTabBar from '../components/BashboardTabBar';
@@ -17,10 +25,23 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [loaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_900Black,
+  });
 
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  if (!loaded) {
+    return null;
+  }
 
   return (
     // SPC FIX: Root gesture handler needed for Editor pan/pinch
